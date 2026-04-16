@@ -46,3 +46,28 @@
 - `scripts/generate-cf-config.js` and the generated-config workflow (maintain `cloudflared/config.yml` manually)
 
 ---
+
+## [2.0.1] — 2026-04-16
+
+### Added
+
+- Admin UI chia theo tab: Tổng quan, Cron jobs, Accounts, Public Bucket Proxy, Tất cả file, Runtime, Logs
+- Tab `Tất cả file` để xem toàn bộ file đã track theo account/scope, chọn file để replace hoặc delete trực tiếp
+- API admin mới cho quản lý file track: list public files riêng, list all tracked files, replace file theo `encodedKey`, delete file theo `encodedKey`
+- Báo cáo chạy cron chi tiết theo từng account khi bấm `run now`
+- Toast thông báo thành công/thất bại và trạng thái loading cho các thao tác nặng trên form/admin actions
+- Header sort cho bảng Accounts với mặc định sắp theo `addedAt` mới nhất
+
+### Changed
+
+- `admin/api/overview` không còn tải sẵn danh sách file public để tránh màn hình admin load chậm
+- Tab `Public Bucket Proxy` chỉ tải danh sách khi bấm refresh, không fetch lúc load trang
+- Lưu account thành công sẽ clear form account và phần `Thêm nhanh từ dịch vụ S3`
+- Refresh dữ liệu theo từng tab mà không cần reload toàn trang
+
+### Fixed
+
+- Cải thiện UX cho thao tác cron, account, public file và managed file: có trạng thái đang xử lý, log rõ hơn và refresh cục bộ
+- Đồng bộ metadata + usage về RTDB sau khi replace/delete tracked file từ admin
+
+---

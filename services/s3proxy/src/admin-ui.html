@@ -9,263 +9,369 @@
   <title>S3Proxy Admin</title>
   <style>
     :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
     body { font-family: Inter, Arial, sans-serif; margin: 0; background: #0b1020; color: #e5e7eb; }
-    .wrap { max-width: 1200px; margin: 0 auto; padding: 24px; }
-    .card { background: #111a31; border: 1px solid #223156; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .wrap { max-width: 1440px; margin: 0 auto; padding: 24px; }
     h1, h2, h3 { margin: 0 0 12px; }
+    h1 { font-size: 28px; }
+    h2 { font-size: 20px; }
     h3 { font-size: 15px; color: #c7d2fe; }
+    .card { background: #111a31; border: 1px solid #223156; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .stack { display: grid; gap: 12px; }
     .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
-    .pill { padding: 8px 10px; background: #1a2745; border-radius: 8px; font-size: 13px; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #24355f; vertical-align: top; }
-    button { cursor: pointer; border: 0; background: #2563eb; color: #fff; padding: 8px 12px; border-radius: 8px; }
+    .pill { padding: 10px 12px; background: #17233f; border: 1px solid #273a62; border-radius: 12px; font-size: 13px; }
+    .pill b { color: #fff; }
+    .hint { font-size: 12px; color: #9ca3af; }
+    .ok { color: #34d399; }
+    .bad { color: #f87171; }
+    .warn-text { color: #fbbf24; }
+    button { cursor: pointer; border: 0; background: #2563eb; color: #fff; padding: 10px 14px; border-radius: 10px; font-size: 13px; }
     button.secondary { background: #374151; }
     button.warn { background: #b45309; }
     button.danger { background: #b91c1c; }
-    .actions { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-    .ok { color: #34d399; }
-    .bad { color: #f87171; }
-    pre { white-space: pre-wrap; word-break: break-word; background: #0f172a; padding: 10px; border-radius: 8px; }
-    form { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 8px; }
-    input, select, textarea { width: 100%; box-sizing: border-box; background: #0f172a; border: 1px solid #2c3c65; color: #e5e7eb; border-radius: 8px; padding: 8px; }
-    textarea { min-height: 82px; }
+    button.ghost { background: transparent; border: 1px solid #2c3c65; color: #cbd5e1; }
+    button:disabled { cursor: not-allowed; opacity: 0.6; }
+    .button-loading::after { content: '…'; margin-left: 6px; }
+    form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+    input, select, textarea { width: 100%; background: #0f172a; border: 1px solid #2c3c65; color: #e5e7eb; border-radius: 10px; padding: 10px; }
+    textarea { min-height: 88px; resize: vertical; }
     .span2 { grid-column: span 2; }
-    .hint { font-size: 12px; color: #9ca3af; margin-top: 8px; }
+    .span3 { grid-column: span 3; }
     .table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .service-tool { background: #0f172a; border: 1px solid #2c3c65; border-radius: 10px; padding: 10px; margin-bottom: 12px; }
-    .service-tool .service-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-    #jobsBody td,
-    #accountsBody td { word-break: break-word; }
-    #jobsBody td:nth-child(5) pre { margin: 0; max-width: 320px; max-height: 140px; overflow: auto; }
-    #accountsBody td:nth-child(2) { min-width: 260px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #24355f; vertical-align: top; }
+    th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+    th.sortable:hover { color: #c7d2fe; }
+    tr:hover td { background: rgba(37, 99, 235, 0.05); }
+    pre { white-space: pre-wrap; word-break: break-word; background: #0f172a; border: 1px solid #2c3c65; padding: 12px; border-radius: 12px; margin: 0; }
+    .service-tool { background: #0f172a; border: 1px solid #2c3c65; border-radius: 12px; padding: 12px; }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .tab-btn { background: #17233f; border: 1px solid #2c3c65; color: #cbd5e1; }
+    .tab-btn.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .section-head { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+    .section-head .sub { color: #9ca3af; font-size: 12px; }
+    .empty-state { padding: 18px; border: 1px dashed #30446f; border-radius: 12px; color: #9ca3af; background: rgba(15, 23, 42, 0.45); }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .toolbar select, .toolbar input { min-width: 180px; }
+    .status-line { min-height: 20px; color: #9ca3af; font-size: 12px; }
+    .sticky-actions { position: sticky; top: 0; z-index: 20; background: linear-gradient(180deg, #0b1020 70%, rgba(11,16,32,0.88)); padding-bottom: 14px; margin-bottom: 12px; }
+    .toast-wrap { position: fixed; top: 16px; right: 16px; display: grid; gap: 8px; z-index: 2100; width: min(360px, calc(100vw - 32px)); }
+    .toast { border-radius: 12px; padding: 12px 14px; border: 1px solid #2c3c65; background: #101b34; box-shadow: 0 10px 24px rgba(2,6,23,0.3); }
+    .toast.success { border-color: #166534; }
+    .toast.error { border-color: #991b1b; }
+    .toast.info { border-color: #1d4ed8; }
+    .chip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 8px; border-radius: 999px; font-size: 11px; background: #1b2a4c; border: 1px solid #2c3c65; }
     .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(2, 6, 23, 0.76);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1100;
-      padding: 16px;
+      position: fixed; inset: 0; background: rgba(2, 6, 23, 0.76); display: none;
+      align-items: center; justify-content: center; z-index: 1100; padding: 16px;
     }
-    .modal-backdrop.show {
-      display: flex;
-    }
+    .modal-backdrop.show { display: flex; }
     .modal-box {
-      width: min(540px, 100%);
-      background: #0f172a;
-      border: 1px solid #2c3c65;
-      border-radius: 12px;
-      padding: 14px;
-      box-shadow: 0 16px 40px rgba(2, 6, 23, 0.6);
+      width: min(560px, 100%); background: #0f172a; border: 1px solid #2c3c65; border-radius: 14px;
+      padding: 14px; box-shadow: 0 16px 40px rgba(2, 6, 23, 0.6);
     }
-    .modal-box.warn {
-      border-color: #9a3412;
-    }
-    .modal-title {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: #e2e8f0;
-    }
-    .modal-message {
-      white-space: pre-wrap;
-      line-height: 1.4;
-      color: #cbd5e1;
-      margin-bottom: 12px;
-      max-height: 260px;
-      overflow: auto;
-    }
-    .modal-actions {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-      flex-wrap: wrap;
-    }
+    .modal-box.warn { border-color: #9a3412; }
+    .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; color: #e2e8f0; }
+    .modal-message { white-space: pre-wrap; line-height: 1.5; color: #cbd5e1; margin-bottom: 12px; max-height: 280px; overflow: auto; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 
-    @media (max-width: 960px) {
+    @media (max-width: 980px) {
       .wrap { padding: 14px; }
-      .card { padding: 12px; }
-      .actions button { flex: 1 1 calc(50% - 8px); }
+      .span2, .span3 { grid-column: span 1; }
       form { grid-template-columns: 1fr; }
-      .span2 { grid-column: span 1; }
-      .service-tool .service-actions button { flex: 1 1 100%; }
-      .modal-actions button { flex: 1 1 100%; }
+      .sticky-actions { position: static; background: transparent; padding-bottom: 0; }
     }
 
     @media (max-width: 760px) {
       table.responsive-table thead { display: none; }
-      table.responsive-table,
-      table.responsive-table tbody,
-      table.responsive-table tr,
-      table.responsive-table td {
-        display: block;
-        width: 100%;
+      table.responsive-table, table.responsive-table tbody, table.responsive-table tr, table.responsive-table td {
+        display: block; width: 100%;
       }
       table.responsive-table tr {
-        background: #0f172a;
-        border: 1px solid #2c3c65;
-        border-radius: 10px;
-        margin-bottom: 10px;
-        padding: 8px;
+        background: #0f172a; border: 1px solid #2c3c65; border-radius: 12px; margin-bottom: 10px; padding: 8px;
       }
-      table.responsive-table td {
-        border-bottom: 0;
-        padding: 6px 8px;
-      }
+      table.responsive-table td { border-bottom: 0; padding: 6px 8px; }
       table.responsive-table td::before {
-        content: attr(data-label);
-        display: block;
-        font-size: 11px;
-        color: #9ca3af;
-        margin-bottom: 2px;
+        content: attr(data-label); display: block; font-size: 11px; color: #9ca3af; margin-bottom: 2px;
       }
-      table.responsive-table td:last-child {
-        padding-top: 10px;
-      }
-      table.responsive-table td button {
-        margin-right: 6px;
-        margin-bottom: 6px;
-      }
-      #jobsBody td:nth-child(5) pre {
-        max-width: 100%;
-      }
+      table.responsive-table td button { margin-right: 6px; margin-bottom: 6px; }
     }
   </style>
 </head>
 <body>
+<div class="toast-wrap" id="toastWrap"></div>
 <div class="wrap">
-  <h1>S3Proxy Admin</h1>
-  <div class="actions">
-    <button id="refreshBtn">Refresh trạng thái</button>
-    <button id="testAllBtn" class="secondary">Test file operations (all active)</button>
-    <button id="installBtn" class="secondary" hidden>Install app</button>
-  </div>
-  <div id="installHint" class="hint"></div>
-
-  <section class="card">
-    <h2>Tổng quan</h2>
-    <div class="meta" id="meta"></div>
-  </section>
-
-  <section class="card">
-    <h2>Cron jobs</h2>
-    <form id="cronForm">
-      <input id="jobId" placeholder="jobId (để trống = tạo mới)" />
-      <input id="jobName" placeholder="Tên job" required />
-      <select id="jobKind"></select>
-      <input id="jobExpression" placeholder="Cron expression (vd: 0 */4 * * *)" required />
-      <input id="jobTimezone" placeholder="Timezone (vd: UTC, Asia/Ho_Chi_Minh)" value="UTC" />
-      <select id="jobEnabled"><option value="true">enabled</option><option value="false">disabled</option></select>
-      <textarea id="jobPayload" placeholder='JSON payload (vd: {"prefix":"_s3proxy_keepalive"})'>{}</textarea>
-      <button type="submit">Lưu cron job</button>
-    </form>
-    <p class="hint">Kinds mặc định: keepalive_scan, keepalive_touch, probe_active_accounts.</p>
-    <div class="table-wrap">
-    <table class="responsive-table">
-      <thead><tr><th>Job</th><th>Type</th><th>Schedule</th><th>Status</th><th>Payload</th><th>Action</th></tr></thead>
-      <tbody id="jobsBody"></tbody>
-    </table>
-    </div>
-  </section>
-
-  <section class="card">
-    <h2>Accounts</h2>
-
-    <div class="service-tool">
-      <h3>Thêm nhanh từ dịch vụ S3</h3>
-      <form id="accountServiceForm">
-        <select id="accountServiceKinds" multiple>
-          <option value="supabaseS3" selected>supabaseS3 (chuỗi key/value)</option>
-        </select>
-        <input id="accountServiceBucketName" placeholder="bucketName override (optional)" />
-        <textarea id="accountServiceRawInput" class="span2" placeholder="Dán chuỗi bất kỳ chứa supabase.com.database, supabase.com.accessToken, emailOwner..."></textarea>
-      </form>
-      <div class="service-actions">
-        <button type="button" id="accountServiceParseBtn" class="secondary">Regex extract + API lookup</button>
+  <div class="sticky-actions">
+    <div class="section-head">
+      <div>
+        <h1>S3Proxy Admin</h1>
+        <div id="installHint" class="hint"></div>
       </div>
-      <p class="hint">Luồng parse sẽ hỏi confirm trước khi gọi Supabase API để tìm project/bucket hoặc tạo bucket khi thiếu.</p>
-      <pre id="accountServicePreview">(chưa parse)</pre>
+      <div class="actions">
+        <button id="refreshBtn">Refresh dữ liệu lõi</button>
+        <button id="testAllBtn" class="secondary">Test file operations (all active)</button>
+        <button id="installBtn" class="secondary" hidden>Install app</button>
+      </div>
     </div>
+    <div class="tabs" id="tabs">
+      <button class="tab-btn active" data-tab="overview">Tổng quan</button>
+      <button class="tab-btn" data-tab="cron">Cron jobs</button>
+      <button class="tab-btn" data-tab="accounts">Accounts</button>
+      <button class="tab-btn" data-tab="public">Public Bucket Proxy</button>
+      <button class="tab-btn" data-tab="all-files">Tất cả file</button>
+      <button class="tab-btn" data-tab="runtime">Import / Export Runtime</button>
+      <button class="tab-btn" data-tab="logs">Kết quả / thông báo</button>
+    </div>
+  </div>
 
-    <form id="accountForm">
-      <input id="accountId" placeholder="accountId" required />
-      <input id="accountAccessKeyId" placeholder="accessKeyId" required />
-      <input id="accountSecretKey" placeholder="secretAccessKey (để trống = giữ nguyên khi edit)" />
-      <input id="accountEndpoint" class="span2" placeholder="endpoint (https://...)" required />
-      <input id="accountRegion" placeholder="region (Supabase: us-east-1 hoặc auto)" required />
-      <input id="accountBucket" placeholder="bucket" required />
-      <select id="accountPublicBucket">
-        <option value="false">private backend</option>
-        <option value="true">public backend</option>
-      </select>
-      <input id="accountEmailOwner" placeholder="emailOwner" />
-      <input id="accountSupabaseAccessToken" placeholder="supabaseAccessToken (sbp_...)" />
-      <input id="accountSupabaseAccessTokenExp" placeholder="supabaseAccessTokenExp (experimental sbp_...)" />
-      <select id="accountAddressingStyle">
-        <option value="path">path</option>
-        <option value="virtual">virtual</option>
-      </select>
-      <select id="accountPayloadSigningMode">
-        <option value="unsigned">unsigned</option>
-        <option value="signed">signed</option>
-      </select>
-      <input id="accountQuotaBytes" type="number" min="1" placeholder="quotaBytes" value="1073741824" />
-      <input id="accountUsedBytes" type="number" min="0" placeholder="usedBytes" value="0" />
-      <select id="accountActive">
-        <option value="true">active</option>
-        <option value="false">inactive</option>
-      </select>
-      <input id="accountAddedAt" type="number" min="0" placeholder="addedAt (epoch ms)" />
-      <button type="submit">Lưu account</button>
-      <button type="button" id="accountResetBtn" class="secondary">Clear form</button>
-    </form>
-    <p class="hint">Edit: bấm edit để nạp dữ liệu; `secretAccessKey`, `supabaseAccessToken`, `supabaseAccessTokenExp` để trống sẽ giữ giá trị cũ. Nếu backend được bật `public`, luồng upload chính sẽ tự loại trừ backend này khỏi vòng quay.</p>
-
-    <div class="table-wrap">
-    <table class="responsive-table">
-      <thead><tr><th>Account</th><th>Endpoint/Bucket</th><th>Owner/Supabase</th><th>Used/Quota</th><th>Percent</th><th>Status</th><th>Action</th></tr></thead>
-      <tbody id="accountsBody"></tbody>
-    </table>
+  <section class="tab-panel active" id="tab-overview">
+    <div class="card stack">
+      <div class="section-head">
+        <div>
+          <h2>Tổng quan</h2>
+          <div class="sub">Thông tin trạng thái, số lượng account và đồng bộ RTDB.</div>
+        </div>
+        <div class="actions">
+          <button id="overviewRefreshBtn" class="secondary">Refresh tổng quan</button>
+        </div>
+      </div>
+      <div class="meta" id="meta"></div>
     </div>
   </section>
 
-  <section class="card">
-    <h2>Public Bucket Proxy</h2>
-    <form id="publicFileForm">
-      <input id="publicFilePath" class="span2" placeholder="Đường dẫn file public (vd: images/banner.png)" />
-      <input id="publicFileContentType" placeholder="contentType override (optional)" />
-      <input id="publicFileInput" type="file" />
-      <button type="submit">Upload / Replace file public</button>
-      <button type="button" id="publicFileResetBtn" class="secondary">Clear form</button>
-    </form>
-    <div class="actions">
-      <button id="publicFileRefreshBtn" class="secondary">Refresh file public</button>
-    </div>
-    <p class="hint">API `public-bucket-proxy` sẽ chỉ lưu lên các backend được đánh dấu public và trả direct link backend để có thể dùng ngay cả khi proxy hiện tại down.</p>
-
-    <div class="table-wrap">
-    <table class="responsive-table">
-      <thead><tr><th>Path</th><th>Backend</th><th>Meta</th><th>Direct Link</th><th>Updated</th><th>Action</th></tr></thead>
-      <tbody id="publicFilesBody"></tbody>
-    </table>
+  <section class="tab-panel" id="tab-cron">
+    <div class="card stack">
+      <div class="section-head">
+        <div>
+          <h2>Cron jobs</h2>
+          <div class="sub">Chạy tay trực tiếp từng job và xem báo cáo chi tiết theo account.</div>
+        </div>
+        <div class="actions">
+          <button id="cronRefreshBtn" class="secondary">Refresh cron jobs</button>
+        </div>
+      </div>
+      <form id="cronForm">
+        <input id="jobId" placeholder="jobId (để trống = tạo mới)" />
+        <input id="jobName" placeholder="Tên job" required />
+        <select id="jobKind"></select>
+        <input id="jobExpression" placeholder="Cron expression (vd: 0 */4 * * *)" required />
+        <input id="jobTimezone" placeholder="Timezone (vd: UTC, Asia/Ho_Chi_Minh)" value="UTC" />
+        <select id="jobEnabled"><option value="true">enabled</option><option value="false">disabled</option></select>
+        <textarea id="jobPayload" class="span2" placeholder='JSON payload (vd: {"prefix":"_s3proxy_keepalive"})'>{}</textarea>
+        <button type="submit" id="cronSubmitBtn">Lưu cron job</button>
+      </form>
+      <div class="hint">Kinds mặc định: keepalive_scan, keepalive_touch, probe_active_accounts.</div>
+      <div class="table-wrap">
+        <table class="responsive-table">
+          <thead><tr><th>Job</th><th>Type</th><th>Schedule</th><th>Status</th><th>Payload</th><th>Action</th></tr></thead>
+          <tbody id="jobsBody"></tbody>
+        </table>
+      </div>
+      <div class="stack">
+        <div class="section-head">
+          <h3>Log chạy cron</h3>
+          <span class="hint">Kết quả trả về khi bấm run now sẽ hiển thị ở đây.</span>
+        </div>
+        <pre id="cronRunLog">(chưa chạy cron thủ công)</pre>
+      </div>
     </div>
   </section>
 
-  <section class="card">
-    <h2>Import / Export Runtime</h2>
-    <div class="actions">
-      <button id="runtimeExportBtn">Export runtime JSON</button>
-      <input id="runtimeImportFile" type="file" accept=".json,application/json" />
-      <button id="runtimeImportBtn" class="secondary">Import runtime JSON</button>
+  <section class="tab-panel" id="tab-accounts">
+    <div class="card stack">
+      <div class="section-head">
+        <div>
+          <h2>Accounts</h2>
+          <div class="sub">Mặc định sắp theo ngày thêm account mới nhất. Có thể bấm vào header để đổi thứ tự.</div>
+        </div>
+        <div class="actions">
+          <button id="accountsRefreshBtn" class="secondary">Refresh accounts</button>
+        </div>
+      </div>
+
+      <div class="service-tool stack">
+        <div>
+          <h3>Thêm nhanh từ dịch vụ S3</h3>
+          <div class="hint">Luồng parse sẽ hỏi confirm trước khi gọi Supabase API để tìm project / bucket hoặc tạo bucket khi thiếu.</div>
+        </div>
+        <form id="accountServiceForm">
+          <select id="accountServiceKinds" multiple>
+            <option value="supabaseS3" selected>supabaseS3 (chuỗi key/value)</option>
+          </select>
+          <input id="accountServiceBucketName" placeholder="bucketName override (optional)" />
+          <textarea id="accountServiceRawInput" class="span2" placeholder="Dán chuỗi bất kỳ chứa supabase.com.database, supabase.com.accessToken, emailOwner..."></textarea>
+        </form>
+        <div class="service-actions actions">
+          <button type="button" id="accountServiceParseBtn" class="secondary">Regex extract + API lookup</button>
+        </div>
+        <pre id="accountServicePreview">(chưa parse)</pre>
+      </div>
+
+      <form id="accountForm">
+        <input id="accountId" placeholder="accountId" required />
+        <input id="accountAccessKeyId" placeholder="accessKeyId" required />
+        <input id="accountSecretKey" placeholder="secretAccessKey (để trống = giữ nguyên khi edit)" />
+        <input id="accountEndpoint" class="span2" placeholder="endpoint (https://...)" required />
+        <input id="accountRegion" placeholder="region (Supabase: us-east-1 hoặc auto)" required />
+        <input id="accountBucket" placeholder="bucket" required />
+        <select id="accountPublicBucket">
+          <option value="false">private backend</option>
+          <option value="true">public backend</option>
+        </select>
+        <input id="accountEmailOwner" placeholder="emailOwner" />
+        <input id="accountSupabaseAccessToken" placeholder="supabaseAccessToken (sbp_...)" />
+        <input id="accountSupabaseAccessTokenExp" placeholder="supabaseAccessTokenExp (experimental sbp_...)" />
+        <select id="accountAddressingStyle">
+          <option value="path">path</option>
+          <option value="virtual">virtual</option>
+        </select>
+        <select id="accountPayloadSigningMode">
+          <option value="unsigned">unsigned</option>
+          <option value="signed">signed</option>
+        </select>
+        <input id="accountQuotaBytes" type="number" min="1" placeholder="quotaBytes" value="1073741824" />
+        <input id="accountUsedBytes" type="number" min="0" placeholder="usedBytes" value="0" />
+        <select id="accountActive">
+          <option value="true">active</option>
+          <option value="false">inactive</option>
+        </select>
+        <input id="accountAddedAt" type="number" min="0" placeholder="addedAt (epoch ms)" />
+        <button type="submit" id="accountSubmitBtn">Lưu account</button>
+        <button type="button" id="accountResetBtn" class="secondary">Clear form</button>
+      </form>
+      <div class="hint">Edit: bấm edit để nạp dữ liệu; `secretAccessKey`, `supabaseAccessToken`, `supabaseAccessTokenExp` để trống sẽ giữ giá trị cũ. Nếu lưu account thành công, form sẽ tự clear.</div>
+      <div class="status-line" id="accountsStatus"></div>
+      <div class="table-wrap">
+        <table class="responsive-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-account-sort="accountId">Account</th>
+              <th class="sortable" data-account-sort="endpoint">Endpoint / Bucket</th>
+              <th class="sortable" data-account-sort="owner">Owner / Supabase</th>
+              <th class="sortable" data-account-sort="usedBytes">Used / Quota</th>
+              <th class="sortable" data-account-sort="usedPercent">Percent</th>
+              <th class="sortable" data-account-sort="status">Status</th>
+              <th class="sortable" data-account-sort="addedAt">Added at</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="accountsBody"></tbody>
+        </table>
+      </div>
     </div>
-    <p class="hint">Chỉ import/export metadata runtime: accounts, buckets, routes, public direct links. Không chứa nội dung file đã lưu trong S3 backend.</p>
-    <pre id="runtimeIoLog">(chưa thao tác)</pre>
   </section>
 
-  <section class="card">
-    <h2>Kết quả kiểm thử API file</h2>
-    <pre id="log">(chưa chạy)</pre>
+  <section class="tab-panel" id="tab-public">
+    <div class="card stack">
+      <div class="section-head">
+        <div>
+          <h2>Public Bucket Proxy</h2>
+          <div class="sub">Danh sách file public chỉ tải khi bạn bấm refresh, không tải lúc mở màn hình.</div>
+        </div>
+        <div class="actions">
+          <button id="publicFileRefreshBtn" class="secondary">Refresh file public</button>
+        </div>
+      </div>
+      <form id="publicFileForm">
+        <input id="publicFilePath" class="span2" placeholder="Đường dẫn file public (vd: images/banner.png)" />
+        <input id="publicFileContentType" placeholder="contentType override (optional)" />
+        <input id="publicFileInput" type="file" />
+        <button type="submit" id="publicFileSubmitBtn">Upload / Replace file public</button>
+        <button type="button" id="publicFileResetBtn" class="secondary">Clear form</button>
+      </form>
+      <div class="hint">API `public-bucket-proxy` chỉ lưu lên backend public và trả direct link backend để dùng ngay cả khi proxy hiện tại down.</div>
+      <div class="status-line" id="publicFilesStatus">Danh sách file public chưa được tải. Bấm “Refresh file public” để lấy dữ liệu mới.</div>
+      <div class="table-wrap">
+        <table class="responsive-table">
+          <thead><tr><th>Path</th><th>Backend</th><th>Meta</th><th>Direct Link</th><th>Updated</th><th>Action</th></tr></thead>
+          <tbody id="publicFilesBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-all-files">
+    <div class="card stack">
+      <div class="section-head">
+        <div>
+          <h2>Tất cả file</h2>
+          <div class="sub">Xem toàn bộ file đã track theo account / scope, thay file hoặc xóa trực tiếp mà không cần reload trang.</div>
+        </div>
+        <div class="actions">
+          <button id="allFilesRefreshBtn" class="secondary">Refresh tất cả file</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <select id="allFilesAccountFilter"></select>
+        <select id="allFilesScopeFilter">
+          <option value="all">Tất cả scope</option>
+          <option value="main">main</option>
+          <option value="public">public</option>
+        </select>
+        <input id="allFilesSearchInput" placeholder="Lọc theo account, bucket, object key, backend key..." />
+      </div>
+      <div class="status-line" id="allFilesStatus">Danh sách tất cả file chưa được tải. Bấm “Refresh tất cả file” để lấy dữ liệu mới.</div>
+
+      <div class="service-tool stack">
+        <div>
+          <h3>Chỉnh sửa file đã track</h3>
+          <div class="hint">Chọn một file trong bảng bên dưới, sau đó upload file mới để replace hoặc xóa khi cần.</div>
+        </div>
+        <form id="managedFileForm">
+          <input id="managedFileEncodedKey" placeholder="encodedKey" readonly />
+          <input id="managedFileAccountId" placeholder="accountId" readonly />
+          <input id="managedFileScope" placeholder="scope" readonly />
+          <input id="managedFileBucket" placeholder="bucket" readonly />
+          <input id="managedFileObjectKey" class="span2" placeholder="objectKey" readonly />
+          <input id="managedFileBackendKey" class="span2" placeholder="backendKey" readonly />
+          <input id="managedFileContentType" placeholder="contentType override (optional)" />
+          <input id="managedFileInput" type="file" />
+          <button type="submit" id="managedFileReplaceBtn">Replace file đã chọn</button>
+          <button type="button" id="managedFileDeleteBtn" class="danger">Xóa file đã chọn</button>
+          <button type="button" id="managedFileResetBtn" class="secondary">Clear chọn file</button>
+        </form>
+      </div>
+
+      <div class="table-wrap">
+        <table class="responsive-table">
+          <thead><tr><th>Account / Scope</th><th>Bucket / Object key</th><th>Backend key</th><th>Meta</th><th>Updated</th><th>Action</th></tr></thead>
+          <tbody id="allFilesBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-runtime">
+    <div class="card stack">
+      <div class="section-head">
+        <div>
+          <h2>Import / Export Runtime</h2>
+          <div class="sub">Không upload lại nội dung file lên S3, chỉ import / export metadata runtime.</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="runtimeExportBtn">Export runtime JSON</button>
+        <input id="runtimeImportFile" type="file" accept=".json,application/json" />
+        <button id="runtimeImportBtn" class="secondary">Import runtime JSON</button>
+      </div>
+      <pre id="runtimeIoLog">(chưa thao tác)</pre>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-logs">
+    <div class="card stack">
+      <div class="section-head">
+        <div>
+          <h2>Kết quả / thông báo</h2>
+          <div class="sub">Các thao tác test API, copy link, lỗi hoặc thông báo hệ thống sẽ hiển thị tại đây.</div>
+        </div>
+      </div>
+      <pre id="log">(chưa chạy)</pre>
+    </div>
   </section>
 </div>
 
@@ -284,18 +390,23 @@
 const metaEl = document.getElementById('meta')
 const jobsBody = document.getElementById('jobsBody')
 const accountsBody = document.getElementById('accountsBody')
+const publicFilesBody = document.getElementById('publicFilesBody')
+const allFilesBody = document.getElementById('allFilesBody')
 const logEl = document.getElementById('log')
+const cronRunLog = document.getElementById('cronRunLog')
 const refreshBtn = document.getElementById('refreshBtn')
+const overviewRefreshBtn = document.getElementById('overviewRefreshBtn')
+const cronRefreshBtn = document.getElementById('cronRefreshBtn')
+const accountsRefreshBtn = document.getElementById('accountsRefreshBtn')
+const publicFileRefreshBtn = document.getElementById('publicFileRefreshBtn')
+const allFilesRefreshBtn = document.getElementById('allFilesRefreshBtn')
 const testAllBtn = document.getElementById('testAllBtn')
 const installBtn = document.getElementById('installBtn')
 const installHint = document.getElementById('installHint')
 const cronForm = document.getElementById('cronForm')
 const accountForm = document.getElementById('accountForm')
-const accountResetBtn = document.getElementById('accountResetBtn')
 const publicFileForm = document.getElementById('publicFileForm')
-const publicFilesBody = document.getElementById('publicFilesBody')
-const publicFileRefreshBtn = document.getElementById('publicFileRefreshBtn')
-const publicFileResetBtn = document.getElementById('publicFileResetBtn')
+const managedFileForm = document.getElementById('managedFileForm')
 const runtimeExportBtn = document.getElementById('runtimeExportBtn')
 const runtimeImportBtn = document.getElementById('runtimeImportBtn')
 const runtimeImportFile = document.getElementById('runtimeImportFile')
@@ -305,6 +416,17 @@ const accountServiceBucketNameEl = document.getElementById('accountServiceBucket
 const accountServiceRawInputEl = document.getElementById('accountServiceRawInput')
 const accountServiceParseBtn = document.getElementById('accountServiceParseBtn')
 const accountServicePreviewEl = document.getElementById('accountServicePreview')
+const accountResetBtn = document.getElementById('accountResetBtn')
+const publicFileResetBtn = document.getElementById('publicFileResetBtn')
+const accountsStatus = document.getElementById('accountsStatus')
+const publicFilesStatus = document.getElementById('publicFilesStatus')
+const allFilesStatus = document.getElementById('allFilesStatus')
+const allFilesAccountFilter = document.getElementById('allFilesAccountFilter')
+const allFilesScopeFilter = document.getElementById('allFilesScopeFilter')
+const allFilesSearchInput = document.getElementById('allFilesSearchInput')
+const managedFileDeleteBtn = document.getElementById('managedFileDeleteBtn')
+const managedFileResetBtn = document.getElementById('managedFileResetBtn')
+const toastWrap = document.getElementById('toastWrap')
 const modalBackdrop = document.getElementById('modalBackdrop')
 const modalBox = document.getElementById('modalBox')
 const modalTitle = document.getElementById('modalTitle')
@@ -314,21 +436,42 @@ const modalConfirmBtn = document.getElementById('modalConfirmBtn')
 let deferredInstallPrompt = null
 let modalResolver = null
 
+const state = {
+  activeTab: 'overview',
+  core: { jobs: [], accounts: [], cronKinds: [], stats: null, status: '-', instanceId: '-', deployVersion: '-', rtdb: {} },
+  accountSort: { key: 'addedAt', direction: 'desc' },
+  publicFiles: [],
+  publicFilesLoaded: false,
+  allFiles: [],
+  allFilesLoaded: false,
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function fmtBytes(bytes) {
   if (!bytes) return '0 B'
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  let value = bytes
+  let value = Number(bytes)
   let idx = 0
   while (value >= 1024 && idx < units.length - 1) {
     value /= 1024
-    idx++
+    idx += 1
   }
-  return value.toFixed(2) + ' ' + units[idx]
+  return `${value.toFixed(2)} ${units[idx]}`
 }
 
 function fmtTime(ts) {
   if (!ts) return '-'
-  return new Date(ts).toISOString().replace('T', ' ').slice(0, 16)
+  const date = new Date(ts)
+  if (Number.isNaN(date.getTime())) return '-'
+  return date.toISOString().replace('T', ' ').slice(0, 16)
 }
 
 function fmtTokenPreview(tokenValue) {
@@ -344,6 +487,10 @@ function encodePathForUrl(path) {
     .filter((segment) => segment !== '')
     .map((segment) => encodeURIComponent(segment))
     .join('/')
+}
+
+function selectedServiceKinds() {
+  return Array.from(accountServiceKindsEl.selectedOptions).map((option) => option.value)
 }
 
 async function copyText(value) {
@@ -366,17 +513,58 @@ async function copyText(value) {
   document.body.removeChild(input)
 }
 
-function selectedServiceKinds() {
-  return Array.from(accountServiceKindsEl.selectedOptions).map((option) => option.value)
-}
-
 async function api(path, options = {}) {
   const res = await fetch(path, options)
-  const body = await res.json()
+  const contentType = res.headers.get('content-type') || ''
+  const body = contentType.includes('application/json') ? await res.json() : { error: await res.text() }
   if (!res.ok) {
     throw new Error(body.error || res.statusText)
   }
   return body
+}
+
+function logMessage(message, value = null) {
+  if (value === null || value === undefined) {
+    logEl.textContent = String(message)
+    return
+  }
+  if (typeof value === 'string') {
+    logEl.textContent = `${message}\n${value}`
+    return
+  }
+  logEl.textContent = `${message}\n${JSON.stringify(value, null, 2)}`
+}
+
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div')
+  toast.className = `toast ${type}`
+  toast.textContent = String(message)
+  toastWrap.appendChild(toast)
+  setTimeout(() => {
+    toast.remove()
+  }, 3600)
+}
+
+function setButtonBusy(button, busy, busyLabel = 'Đang xử lý') {
+  if (!button) return () => {}
+  if (busy) {
+    if (!button.dataset.originalLabel) button.dataset.originalLabel = button.textContent
+    button.textContent = busyLabel
+    button.disabled = true
+    button.classList.add('button-loading')
+    return () => setButtonBusy(button, false)
+  }
+  button.textContent = button.dataset.originalLabel || button.textContent
+  button.disabled = false
+  button.classList.remove('button-loading')
+  return () => {}
+}
+
+function setFormBusy(form, busy) {
+  if (!form) return
+  form.querySelectorAll('input, select, textarea, button').forEach((field) => {
+    field.disabled = busy
+  })
 }
 
 function closeModal(result) {
@@ -389,10 +577,7 @@ function closeModal(result) {
 }
 
 async function openModal(options = {}) {
-  if (modalResolver) {
-    closeModal(false)
-  }
-
+  if (modalResolver) closeModal(false)
   const {
     title = 'Xác nhận',
     message = '',
@@ -408,7 +593,6 @@ async function openModal(options = {}) {
   modalCancelBtn.textContent = cancelText
   modalCancelBtn.style.display = showCancel ? 'inline-block' : 'none'
   modalBox.classList.toggle('warn', tone === 'warn')
-
   modalBackdrop.classList.add('show')
   modalBackdrop.setAttribute('aria-hidden', 'false')
 
@@ -420,19 +604,37 @@ async function openModal(options = {}) {
 modalConfirmBtn.addEventListener('click', () => closeModal(true))
 modalCancelBtn.addEventListener('click', () => closeModal(false))
 modalBackdrop.addEventListener('click', (event) => {
-  if (event.target === modalBackdrop) {
-    closeModal(false)
-  }
+  if (event.target === modalBackdrop) closeModal(false)
 })
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && modalResolver) {
-    closeModal(false)
-  }
+  if (event.key === 'Escape' && modalResolver) closeModal(false)
+})
+
+function setActiveTab(tabKey) {
+  state.activeTab = tabKey
+  document.querySelectorAll('.tab-btn').forEach((button) => {
+    button.classList.toggle('active', button.dataset.tab === tabKey)
+  })
+  document.querySelectorAll('.tab-panel').forEach((panel) => {
+    panel.classList.toggle('active', panel.id === `tab-${tabKey}`)
+  })
+}
+
+document.querySelectorAll('.tab-btn').forEach((button) => {
+  button.addEventListener('click', () => setActiveTab(button.dataset.tab))
 })
 
 function bindCronForm(kinds) {
   const select = document.getElementById('jobKind')
-  select.innerHTML = kinds.map((kind) => `<option value="${kind}">${kind}</option>`).join('')
+  const current = select.value
+  select.innerHTML = kinds.map((kind) => `<option value="${escapeHtml(kind)}">${escapeHtml(kind)}</option>`).join('')
+  if (current && kinds.includes(current)) select.value = current
+}
+
+function resetAccountServiceInputs() {
+  accountServiceBucketNameEl.value = ''
+  accountServiceRawInputEl.value = ''
+  accountServicePreviewEl.textContent = '(chưa parse)'
 }
 
 function resetAccountForm() {
@@ -490,74 +692,59 @@ function applyAccountDraft(draft) {
 }
 
 function buildAccountPayloadFromForm() {
-  const accountId = document.getElementById('accountId').value.trim()
-  const accessKeyId = document.getElementById('accountAccessKeyId').value.trim()
-  const secretAccessKey = document.getElementById('accountSecretKey').value.trim()
-  const endpoint = document.getElementById('accountEndpoint').value.trim()
-  const region = document.getElementById('accountRegion').value.trim()
-  const bucket = document.getElementById('accountBucket').value.trim()
-  const publicBucket = document.getElementById('accountPublicBucket').value === 'true'
-  const emailOwner = document.getElementById('accountEmailOwner').value.trim()
-  const supabaseAccessToken = document.getElementById('accountSupabaseAccessToken').value.trim()
-  const supabaseAccessTokenExp = document.getElementById('accountSupabaseAccessTokenExp').value.trim()
-  const addressingStyle = document.getElementById('accountAddressingStyle').value
-  const payloadSigningMode = document.getElementById('accountPayloadSigningMode').value
   const quotaRaw = document.getElementById('accountQuotaBytes').value.trim()
   const usedRaw = document.getElementById('accountUsedBytes').value.trim()
   const addedAtRaw = document.getElementById('accountAddedAt').value.trim()
-  const active = document.getElementById('accountActive').value === 'true'
 
   return {
-    accountId,
-    accessKeyId,
-    secretAccessKey: secretAccessKey || undefined,
-    endpoint,
-    region,
-    bucket,
-    publicBucket,
-    emailOwner: emailOwner || undefined,
-    supabaseAccessToken: supabaseAccessToken || undefined,
-    supabaseAccessTokenExp: supabaseAccessTokenExp || undefined,
-    addressingStyle,
-    payloadSigningMode,
+    accountId: document.getElementById('accountId').value.trim(),
+    accessKeyId: document.getElementById('accountAccessKeyId').value.trim(),
+    secretAccessKey: document.getElementById('accountSecretKey').value.trim() || undefined,
+    endpoint: document.getElementById('accountEndpoint').value.trim(),
+    region: document.getElementById('accountRegion').value.trim(),
+    bucket: document.getElementById('accountBucket').value.trim(),
+    publicBucket: document.getElementById('accountPublicBucket').value === 'true',
+    emailOwner: document.getElementById('accountEmailOwner').value.trim() || undefined,
+    supabaseAccessToken: document.getElementById('accountSupabaseAccessToken').value.trim() || undefined,
+    supabaseAccessTokenExp: document.getElementById('accountSupabaseAccessTokenExp').value.trim() || undefined,
+    addressingStyle: document.getElementById('accountAddressingStyle').value,
+    payloadSigningMode: document.getElementById('accountPayloadSigningMode').value,
     quotaBytes: quotaRaw ? Number(quotaRaw) : undefined,
     usedBytes: usedRaw ? Number(usedRaw) : undefined,
+    active: document.getElementById('accountActive').value === 'true',
     addedAt: addedAtRaw ? Number(addedAtRaw) : undefined,
-    active,
   }
 }
 
-function isStandaloneMode() {
-  return window.matchMedia('(display-mode: standalone)').matches
-    || window.navigator.standalone === true
+function resetPublicFileForm() {
+  document.getElementById('publicFilePath').value = ''
+  document.getElementById('publicFileContentType').value = ''
+  document.getElementById('publicFileInput').value = ''
 }
 
-function setupInstallApp() {
-  const isiOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent || '')
-  if (isStandaloneMode()) {
-    installHint.textContent = 'App đang chạy ở chế độ cài đặt.'
-    installBtn.hidden = true
-  } else if (isiOS) {
-    installHint.textContent = 'iOS: mở menu Share của Safari và chọn "Add to Home Screen".'
-  }
+function resetManagedFileForm() {
+  document.getElementById('managedFileEncodedKey').value = ''
+  document.getElementById('managedFileAccountId').value = ''
+  document.getElementById('managedFileScope').value = ''
+  document.getElementById('managedFileBucket').value = ''
+  document.getElementById('managedFileObjectKey').value = ''
+  document.getElementById('managedFileBackendKey').value = ''
+  document.getElementById('managedFileContentType').value = ''
+  document.getElementById('managedFileInput').value = ''
+}
 
-  window.addEventListener('beforeinstallprompt', (event) => {
-    event.preventDefault()
-    deferredInstallPrompt = event
-    installBtn.hidden = false
-    installHint.textContent = 'Bạn có thể bấm Install app để tạo shortcut.'
-  })
-
-  window.addEventListener('appinstalled', () => {
-    deferredInstallPrompt = null
-    installBtn.hidden = true
-    installHint.textContent = 'Đã cài đặt app thành công.'
-  })
+function fillManagedFileForm(file) {
+  document.getElementById('managedFileEncodedKey').value = file.encodedKey || ''
+  document.getElementById('managedFileAccountId').value = file.accountId || ''
+  document.getElementById('managedFileScope').value = file.routeScope || ''
+  document.getElementById('managedFileBucket').value = file.logicalBucket || ''
+  document.getElementById('managedFileObjectKey').value = file.objectKey || ''
+  document.getElementById('managedFileBackendKey').value = file.backendKey || ''
+  document.getElementById('managedFileContentType').value = file.contentType || ''
 }
 
 function buildPreviewText(preview) {
   if (!preview) return '(không có dữ liệu preview)'
-
   const extracted = preview.extracted || {}
   const lines = [
     `service: ${preview.service || 'supabaseS3'}`,
@@ -574,25 +761,17 @@ function buildPreviewText(preview) {
 
   if (preview.remote?.attempted) {
     lines.push('')
-    if (preview.remote.ok) {
-      lines.push('remoteLookup: ok')
-    } else if (preview.remote.fallbackToLocal) {
-      lines.push('remoteLookup: fallback_local')
-    } else {
-      lines.push('remoteLookup: error')
-    }
+    if (preview.remote.ok) lines.push('remoteLookup: ok')
+    else if (preview.remote.fallbackToLocal) lines.push('remoteLookup: fallback_local')
+    else lines.push('remoteLookup: error')
     if (preview.remote.error) lines.push(`remoteError: ${preview.remote.error}`)
     if (preview.remote.profileWarning) lines.push(`profileWarning: ${preview.remote.profileWarning}`)
     if (preview.remote.project) {
       lines.push(`project: ${preview.remote.project.ref} (${preview.remote.project.name || '-'})`)
       lines.push(`projectRegion: ${preview.remote.project.region || '-'}`)
     }
-    if (preview.remote.profile) {
-      lines.push(`profileEmail: ${preview.remote.profile.email || '-'}`)
-    }
-    if (Array.isArray(preview.remote.buckets)) {
-      lines.push(`buckets: ${preview.remote.buckets.join(', ') || '(empty)'}`)
-    }
+    if (preview.remote.profile) lines.push(`profileEmail: ${preview.remote.profile.email || '-'}`)
+    if (Array.isArray(preview.remote.buckets)) lines.push(`buckets: ${preview.remote.buckets.join(', ') || '(empty)'}`)
     lines.push(`bucketResolved: ${preview.remote.bucketResolved || '-'}`)
     lines.push(`bucketCreated: ${preview.remote.bucketCreated ? 'true' : 'false'}`)
   }
@@ -628,44 +807,33 @@ async function previewSupabaseFromText({ lookupRemote, createBucketIfMissing }) 
       bucketName: accountServiceBucketNameEl.value.trim() || undefined,
     }),
   })
-
   return body.preview
 }
 
 async function runServiceParseFlow() {
   const rawInput = accountServiceRawInputEl.value.trim()
-  if (!rawInput) {
-    throw new Error('Bạn cần dán chuỗi dữ liệu trước khi parse')
-  }
+  if (!rawInput) throw new Error('Bạn cần dán chuỗi dữ liệu trước khi parse')
 
-  const localPreview = await previewSupabaseFromText({
-    lookupRemote: false,
-    createBucketIfMissing: false,
-  })
+  const localPreview = await previewSupabaseFromText({ lookupRemote: false, createBucketIfMissing: false })
   accountServicePreviewEl.textContent = buildPreviewText(localPreview)
 
   let finalPreview = localPreview
   if (localPreview.canLookupRemote) {
     const confirmLookup = await openModal({
       title: 'Xác nhận gọi Supabase API',
-      message: 'Đã parse được supabase.accessToken. Bạn có muốn gọi Supabase Management API để tìm project/bucket và tự tạo bucket khi thiếu không?',
+      message: 'Đã parse được supabase.accessToken. Bạn có muốn gọi Supabase Management API để tìm project / bucket và tự tạo bucket khi thiếu không?',
       confirmText: 'Gọi API',
       cancelText: 'Bỏ qua',
       showCancel: true,
     })
 
     if (confirmLookup) {
-      finalPreview = await previewSupabaseFromText({
-        lookupRemote: true,
-        createBucketIfMissing: true,
-      })
+      finalPreview = await previewSupabaseFromText({ lookupRemote: true, createBucketIfMissing: true })
       accountServicePreviewEl.textContent = buildPreviewText(finalPreview)
     }
   }
 
-  if (!finalPreview.accountDraft) {
-    throw new Error('Không tạo được accountDraft từ dữ liệu đã parse')
-  }
+  if (!finalPreview.accountDraft) throw new Error('Không tạo được accountDraft từ dữ liệu đã parse')
 
   const confirmFillForm = await openModal({
     title: 'Áp dụng vào form',
@@ -676,99 +844,109 @@ async function runServiceParseFlow() {
   })
   if (confirmFillForm) {
     applyAccountDraft(finalPreview.accountDraft)
-    logEl.textContent = JSON.stringify({
-      message: 'Đã autofill form từ service parser',
+    logMessage('Đã autofill form từ service parser', {
       accountId: finalPreview.accountDraft.accountId,
       bucket: finalPreview.accountDraft.bucket,
       emailOwner: finalPreview.accountDraft.emailOwner,
-    }, null, 2)
+    })
+    showToast('Đã điền dữ liệu parse vào form account.', 'success')
   }
 }
 
-function resetPublicFileForm() {
-  document.getElementById('publicFilePath').value = ''
-  document.getElementById('publicFileContentType').value = ''
-  document.getElementById('publicFileInput').value = ''
+function sortIndicator(key) {
+  if (state.accountSort.key !== key) return ''
+  return state.accountSort.direction === 'asc' ? ' ▲' : ' ▼'
 }
 
-async function uploadPublicFile() {
-  const fileInput = document.getElementById('publicFileInput')
-  const pickedFile = fileInput.files && fileInput.files[0]
-  const filePath = (document.getElementById('publicFilePath').value.trim() || pickedFile?.name || '').replace(/^\/+/, '')
-  const contentType = document.getElementById('publicFileContentType').value.trim() || pickedFile?.type || 'application/octet-stream'
+function sortAccounts(accounts) {
+  const { key, direction } = state.accountSort
+  const multiplier = direction === 'asc' ? 1 : -1
+  return [...accounts].sort((left, right) => {
+    const value = (() => {
+      if (key === 'accountId') return String(left.accountId || '').localeCompare(String(right.accountId || ''))
+      if (key === 'endpoint') return `${left.endpoint || ''}|${left.bucket || ''}`.localeCompare(`${right.endpoint || ''}|${right.bucket || ''}`)
+      if (key === 'owner') return `${left.emailOwner || ''}|${left.hasSupabaseAccessToken ? 1 : 0}`.localeCompare(`${right.emailOwner || ''}|${right.hasSupabaseAccessToken ? 1 : 0}`)
+      if (key === 'usedBytes') return Number(left.usedBytes || 0) - Number(right.usedBytes || 0)
+      if (key === 'usedPercent') return Number(left.usedPercent || 0) - Number(right.usedPercent || 0)
+      if (key === 'status') return Number(Boolean(left.active)) - Number(Boolean(right.active))
+      return Number(left.addedAt || 0) - Number(right.addedAt || 0)
+    })()
 
-  if (!filePath) {
-    throw new Error('Bạn cần nhập path hoặc chọn file để upload')
-  }
-  if (!pickedFile) {
-    throw new Error('Bạn cần chọn file để upload/replace')
-  }
+    if (typeof value === 'number') {
+      if (value !== 0) return value * multiplier
+      return String(left.accountId || '').localeCompare(String(right.accountId || ''))
+    }
 
-  const body = await api(`/public-bucket-proxy/files/${encodePathForUrl(filePath)}`, {
-    method: 'PUT',
-    headers: {
-      'content-type': 'application/octet-stream',
-      'x-public-file-content-type': contentType,
-    },
-    body: pickedFile,
+    if (value !== 0) return value * multiplier
+    return Number(left.addedAt || 0) - Number(right.addedAt || 0)
   })
-
-  logEl.textContent = JSON.stringify(body, null, 2)
-  return body
 }
 
-async function refresh() {
-  const body = await api('/admin/api/overview')
-  const healthClass = body.status === 'ok' ? 'ok' : 'bad'
-  const publicBackendCount = body.accounts.filter((account) => account.publicBucket).length
-
+function renderOverview() {
+  const core = state.core
+  const healthClass = core.status === 'ok' ? 'ok' : 'bad'
+  const publicBackendCount = core.accounts.filter((account) => account.publicBucket).length
   metaEl.innerHTML = `
-    <div class="pill">Deploy version: <b>${body.deployVersion}</b></div>
-    <div class="pill">Instance: <b>${body.instanceId}</b></div>
-    <div class="pill">Status: <b class="${healthClass}">${body.status}</b></div>
-    <div class="pill">Accounts active/total: <b>${body.stats.active}/${body.stats.total}</b></div>
-    <div class="pill">Public backends/files: <b>${publicBackendCount}/${body.publicFiles.length}</b></div>
-    <div class="pill">Used total: <b>${fmtBytes(body.stats.usedBytes)} / ${fmtBytes(body.stats.totalBytes)}</b></div>
-    <div class="pill">RTDB connected: <b>${body.rtdb.connected}</b> | listener: <b>${body.rtdb.listenerActive}</b></div>
+    <div class="pill">Deploy version: <b>${escapeHtml(core.deployVersion)}</b></div>
+    <div class="pill">Instance: <b>${escapeHtml(core.instanceId)}</b></div>
+    <div class="pill">Status: <b class="${healthClass}">${escapeHtml(core.status)}</b></div>
+    <div class="pill">Accounts active/total: <b>${core.stats?.active ?? 0}/${core.stats?.total ?? 0}</b></div>
+    <div class="pill">Public backends: <b>${publicBackendCount}</b></div>
+    <div class="pill">Used total: <b>${fmtBytes(core.stats?.usedBytes ?? 0)} / ${fmtBytes(core.stats?.totalBytes ?? 0)}</b></div>
+    <div class="pill">RTDB connected: <b>${core.rtdb?.connected}</b> | listener: <b>${core.rtdb?.listenerActive}</b></div>
   `
+}
 
-  bindCronForm(body.cronKinds)
+function renderJobs() {
+  bindCronForm(state.core.cronKinds || [])
+  const jobs = state.core.jobs || []
+  if (jobs.length === 0) {
+    jobsBody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Chưa có cron job nào.</div></td></tr>`
+    return
+  }
 
-  jobsBody.innerHTML = body.jobs.map((job) => {
+  jobsBody.innerHTML = jobs.map((job) => {
     const statusClass = job.lastRunStatus === 'ok' ? 'ok' : (job.lastRunStatus === 'error' ? 'bad' : '')
-    const delBtn = job.source === 'system'
+    const deleteButton = job.source === 'system'
       ? '<button class="danger" disabled>delete</button>'
-      : `<button class="danger" data-delete="${job.jobId}">delete</button>`
-
-    return `<tr>
-      <td data-label="Job">${job.name}<br/><span class="hint">${job.jobId} (${job.source})</span></td>
-      <td data-label="Type">${job.kind}</td>
-      <td data-label="Schedule">${job.expression}<br/><span class="hint">${job.timezone} | enabled=${job.enabled}</span></td>
-      <td data-label="Status" class="${statusClass}">${job.lastRunStatus || '-'}<br/><span class="hint">${fmtTime(job.lastRunAt)} (${job.lastDurationMs || 0}ms)</span></td>
-      <td data-label="Payload"><pre>${JSON.stringify(job.payload || {}, null, 2)}</pre></td>
-      <td data-label="Action">
-        <button class="warn" data-run="${job.jobId}">run now</button>
-        <button class="secondary" data-edit="${job.jobId}">edit</button>
-        ${delBtn}
-      </td>
-    </tr>`
+      : `<button class="danger" data-delete="${escapeHtml(job.jobId)}">delete</button>`
+    return `
+      <tr>
+        <td data-label="Job">${escapeHtml(job.name)}<br/><span class="hint">${escapeHtml(job.jobId)} (${escapeHtml(job.source)})</span></td>
+        <td data-label="Type">${escapeHtml(job.kind)}</td>
+        <td data-label="Schedule">${escapeHtml(job.expression)}<br/><span class="hint">${escapeHtml(job.timezone)} | enabled=${job.enabled}</span></td>
+        <td data-label="Status" class="${statusClass}">${escapeHtml(job.lastRunStatus || '-')}<br/><span class="hint">${fmtTime(job.lastRunAt)} (${job.lastDurationMs || 0}ms)</span>${job.lastRunError ? `<br/><span class="hint bad">${escapeHtml(job.lastRunError)}</span>` : ''}</td>
+        <td data-label="Payload"><pre>${escapeHtml(JSON.stringify(job.payload || {}, null, 2))}</pre></td>
+        <td data-label="Action">
+          <button class="warn" data-run="${escapeHtml(job.jobId)}">run now</button>
+          <button class="secondary" data-edit="${escapeHtml(job.jobId)}">edit</button>
+          ${deleteButton}
+        </td>
+      </tr>
+    `
   }).join('')
 
   jobsBody.querySelectorAll('button[data-run]').forEach((button) => {
     button.addEventListener('click', async () => {
-      const jobId = button.getAttribute('data-run')
+      const release = setButtonBusy(button, true, 'Đang chạy')
+      cronRunLog.textContent = `Đang chạy cron job ${button.dataset.run}...`
       try {
-        await api(`/admin/api/cron-jobs/${encodeURIComponent(jobId)}/run`, { method: 'POST' })
-        await refresh()
+        const result = await api(`/admin/api/cron-jobs/${encodeURIComponent(button.dataset.run)}/run`, { method: 'POST' })
+        cronRunLog.textContent = JSON.stringify(result, null, 2)
+        showToast(`Đã chạy cron job ${button.dataset.run}.`, result.ok ? 'success' : 'error')
+        await loadCoreData(false)
       } catch (err) {
-        logEl.textContent = String(err)
+        cronRunLog.textContent = String(err)
+        showToast(String(err), 'error')
+      } finally {
+        release()
       }
     })
   })
 
   jobsBody.querySelectorAll('button[data-edit]').forEach((button) => {
     button.addEventListener('click', () => {
-      const job = body.jobs.find((item) => item.jobId === button.getAttribute('data-edit'))
+      const job = jobs.find((item) => item.jobId === button.dataset.edit)
       if (!job) return
       document.getElementById('jobId').value = job.jobId
       document.getElementById('jobName').value = job.name
@@ -777,55 +955,88 @@ async function refresh() {
       document.getElementById('jobTimezone').value = job.timezone
       document.getElementById('jobEnabled').value = String(job.enabled)
       document.getElementById('jobPayload').value = JSON.stringify(job.payload || {}, null, 2)
+      setActiveTab('cron')
     })
   })
 
   jobsBody.querySelectorAll('button[data-delete]').forEach((button) => {
     button.addEventListener('click', async () => {
-      const jobId = button.getAttribute('data-delete')
+      const approved = await openModal({
+        title: 'Xác nhận xóa cron job',
+        message: `Bạn có chắc muốn xóa cron job "${button.dataset.delete}"?`,
+        confirmText: 'Xóa',
+        cancelText: 'Giữ lại',
+        showCancel: true,
+        tone: 'warn',
+      })
+      if (!approved) return
+
+      const release = setButtonBusy(button, true, 'Đang xóa')
       try {
-        await api(`/admin/api/cron-jobs/${encodeURIComponent(jobId)}`, { method: 'DELETE' })
-        await refresh()
+        await api(`/admin/api/cron-jobs/${encodeURIComponent(button.dataset.delete)}`, { method: 'DELETE' })
+        showToast('Đã xóa cron job.', 'success')
+        await loadCoreData(false)
       } catch (err) {
-        logEl.textContent = String(err)
+        showToast(String(err), 'error')
+        cronRunLog.textContent = String(err)
+      } finally {
+        release()
       }
     })
   })
+}
 
-  accountsBody.innerHTML = body.accounts.map((account) => `
+function renderAccounts() {
+  const sorted = sortAccounts(state.core.accounts || [])
+  accountsStatus.textContent = `Tổng ${sorted.length} account. Đang sắp theo ${state.accountSort.key} (${state.accountSort.direction === 'asc' ? 'tăng dần' : 'giảm dần'}).`
+
+  document.querySelectorAll('th[data-account-sort]').forEach((th) => {
+    const key = th.dataset.accountSort
+    const baseText = {
+      accountId: 'Account', endpoint: 'Endpoint / Bucket', owner: 'Owner / Supabase',
+      usedBytes: 'Used / Quota', usedPercent: 'Percent', status: 'Status', addedAt: 'Added at',
+    }[key] || key
+    th.textContent = `${baseText}${sortIndicator(key)}`
+  })
+
+  if (sorted.length === 0) {
+    accountsBody.innerHTML = `<tr><td colspan="8"><div class="empty-state">Chưa có account nào.</div></td></tr>`
+    return
+  }
+
+  accountsBody.innerHTML = sorted.map((account) => `
     <tr>
-      <td data-label="Account">${account.accountId}<br/><span class="hint">${account.accessKeyId || '-'} | ${account.addressingStyle || 'path'} | ${account.payloadSigningMode || 'unsigned'}</span></td>
-      <td data-label="Endpoint/Bucket">${account.endpoint}<br/><span class="hint">${account.bucket} | backend=${account.publicBucket ? 'public' : 'private'}</span></td>
-      <td data-label="Owner/Supabase">${account.emailOwner || '-'}<br/><span class="hint">token=${account.hasSupabaseAccessToken ? 'yes' : 'no'} | exp=${fmtTokenPreview(account.supabaseAccessTokenExp)}</span></td>
-      <td data-label="Used/Quota">${fmtBytes(account.usedBytes)} / ${fmtBytes(account.quotaBytes)}</td>
+      <td data-label="Account">${escapeHtml(account.accountId)}<br/><span class="hint">${escapeHtml(account.accessKeyId || '-')} | ${escapeHtml(account.addressingStyle || 'path')} | ${escapeHtml(account.payloadSigningMode || 'unsigned')}</span></td>
+      <td data-label="Endpoint / Bucket">${escapeHtml(account.endpoint)}<br/><span class="hint">${escapeHtml(account.bucket)} | backend=${account.publicBucket ? 'public' : 'private'}</span></td>
+      <td data-label="Owner / Supabase">${escapeHtml(account.emailOwner || '-')}<br/><span class="hint">token=${account.hasSupabaseAccessToken ? 'yes' : 'no'} | exp=${escapeHtml(fmtTokenPreview(account.supabaseAccessTokenExp))}</span></td>
+      <td data-label="Used / Quota">${fmtBytes(account.usedBytes)} / ${fmtBytes(account.quotaBytes)}</td>
       <td data-label="Percent">${account.usedPercent}%</td>
       <td data-label="Status" class="${account.active ? 'ok' : 'bad'}">${account.active ? 'active' : 'inactive'}<br/><span class="hint">${account.publicBucket ? 'public-backend' : 'private-backend'}</span></td>
+      <td data-label="Added at">${fmtTime(account.addedAt)}</td>
       <td data-label="Action">
-        <button data-account-test="${account.accountId}">Test</button>
-        <button class="secondary" data-account-edit="${account.accountId}">Edit</button>
-        <button class="danger" data-account-delete="${account.accountId}">Delete</button>
+        <button data-account-test="${escapeHtml(account.accountId)}">Test</button>
+        <button class="secondary" data-account-edit="${escapeHtml(account.accountId)}">Edit</button>
+        <button class="danger" data-account-delete="${escapeHtml(account.accountId)}">Delete</button>
       </td>
     </tr>
   `).join('')
 
   accountsBody.querySelectorAll('button[data-account-test]').forEach((button) => {
-    button.addEventListener('click', () => runTest(button.getAttribute('data-account-test')))
+    button.addEventListener('click', () => runTest(button.dataset.accountTest, button))
   })
 
   accountsBody.querySelectorAll('button[data-account-edit]').forEach((button) => {
     button.addEventListener('click', () => {
-      const accountId = button.getAttribute('data-account-edit')
-      const account = body.accounts.find((item) => item.accountId === accountId)
+      const account = state.core.accounts.find((item) => item.accountId === button.dataset.accountEdit)
       if (!account) return
       fillAccountForm(account)
+      setActiveTab('accounts')
     })
   })
 
   accountsBody.querySelectorAll('button[data-account-delete]').forEach((button) => {
     button.addEventListener('click', async () => {
-      const accountId = button.getAttribute('data-account-delete')
-      if (!accountId) return
-
+      const accountId = button.dataset.accountDelete
       const approved = await openModal({
         title: 'Xác nhận xóa account',
         message: `Bạn có chắc muốn xóa account "${accountId}"?`,
@@ -836,64 +1047,94 @@ async function refresh() {
       })
       if (!approved) return
 
+      const release = setButtonBusy(button, true, 'Đang xóa')
       try {
         const result = await api(`/admin/api/accounts/${encodeURIComponent(accountId)}`, { method: 'DELETE' })
-        if (result.warning) {
-          logEl.textContent = result.warning
-        }
-        await refresh()
+        if (result.warning) logMessage(result.warning)
+        showToast(`Đã xóa account ${accountId}.`, 'success')
+        await loadCoreData(false)
       } catch (err) {
-        logEl.textContent = String(err)
+        logMessage(String(err))
+        showToast(String(err), 'error')
+      } finally {
+        release()
       }
     })
   })
+}
 
-  publicFilesBody.innerHTML = body.publicFiles.map((file) => `
+document.querySelectorAll('th[data-account-sort]').forEach((th) => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.accountSort
+    if (state.accountSort.key === key) {
+      state.accountSort.direction = state.accountSort.direction === 'asc' ? 'desc' : 'asc'
+    } else {
+      state.accountSort.key = key
+      state.accountSort.direction = key === 'addedAt' ? 'desc' : 'asc'
+    }
+    renderAccounts()
+  })
+})
+
+function renderPublicFiles() {
+  if (!state.publicFilesLoaded) {
+    publicFilesBody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Danh sách file public chưa được tải. Bấm refresh để lấy dữ liệu mới.</div></td></tr>`
+    return
+  }
+
+  if (state.publicFiles.length === 0) {
+    publicFilesBody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Không có file public nào.</div></td></tr>`
+    return
+  }
+
+  publicFilesBody.innerHTML = state.publicFiles.map((file) => `
     <tr>
-      <td data-label="Path">${file.path}</td>
-      <td data-label="Backend">${file.accountId}<br/><span class="hint">${file.backendKey}</span></td>
-      <td data-label="Meta">${fmtBytes(file.sizeBytes)}<br/><span class="hint">${file.contentType || '-'}</span></td>
-      <td data-label="Direct Link">${file.directUrl ? `<a href="${file.directUrl}" target="_blank" rel="noreferrer">${file.directUrl}</a>` : '-'}</td>
+      <td data-label="Path">${escapeHtml(file.path)}</td>
+      <td data-label="Backend">${escapeHtml(file.accountId)}<br/><span class="hint">${escapeHtml(file.backendKey)}</span></td>
+      <td data-label="Meta">${fmtBytes(file.sizeBytes)}<br/><span class="hint">${escapeHtml(file.contentType || '-')}</span></td>
+      <td data-label="Direct Link">${file.directUrl ? `<a href="${escapeHtml(file.directUrl)}" target="_blank" rel="noreferrer">${escapeHtml(file.directUrl)}</a>` : '-'}</td>
       <td data-label="Updated">${fmtTime(file.updatedAt || file.uploadedAt)}</td>
       <td data-label="Action">
         <button class="secondary" data-public-edit="${encodeURIComponent(file.path)}">Use path</button>
         <button data-public-copy="${encodeURIComponent(file.path)}">Copy link</button>
-        <button class="danger" data-public-delete="${encodeURIComponent(file.path)}">Delete</button>
+        <button class="danger" data-public-delete="${encodeURIComponent(file.encodedKey || file.path)}">Delete</button>
       </td>
     </tr>
   `).join('')
 
   publicFilesBody.querySelectorAll('button[data-public-edit]').forEach((button) => {
     button.addEventListener('click', () => {
-      const path = decodeURIComponent(button.getAttribute('data-public-edit') || '')
-      const file = body.publicFiles.find((item) => item.path === path)
+      const path = decodeURIComponent(button.dataset.publicEdit || '')
+      const file = state.publicFiles.find((item) => item.path === path)
       document.getElementById('publicFilePath').value = path
       document.getElementById('publicFileContentType').value = file?.contentType || ''
+      setActiveTab('public')
     })
   })
 
   publicFilesBody.querySelectorAll('button[data-public-copy]').forEach((button) => {
     button.addEventListener('click', async () => {
-      const path = decodeURIComponent(button.getAttribute('data-public-copy') || '')
-      const file = body.publicFiles.find((item) => item.path === path)
+      const path = decodeURIComponent(button.dataset.publicCopy || '')
+      const file = state.publicFiles.find((item) => item.path === path)
       try {
         if (!file?.directUrl) throw new Error('File này chưa có direct link')
         await copyText(file.directUrl)
-        logEl.textContent = `Đã copy direct link: ${file.directUrl}`
+        logMessage(`Đã copy direct link: ${file.directUrl}`)
+        showToast('Đã copy direct link.', 'success')
       } catch (err) {
-        logEl.textContent = String(err)
+        logMessage(String(err))
+        showToast(String(err), 'error')
       }
     })
   })
 
   publicFilesBody.querySelectorAll('button[data-public-delete]').forEach((button) => {
     button.addEventListener('click', async () => {
-      const path = decodeURIComponent(button.getAttribute('data-public-delete') || '')
-      if (!path) return
-
+      const encodedKey = decodeURIComponent(button.dataset.publicDelete || '')
+      const file = state.publicFiles.find((item) => (item.encodedKey || item.path) === encodedKey)
       const approved = await openModal({
         title: 'Xác nhận xóa file public',
-        message: `Bạn có chắc muốn xóa file public "${path}"?`,
+        message: `Bạn có chắc muốn xóa file public "${file?.path || encodedKey}"?`,
         confirmText: 'Xóa',
         cancelText: 'Giữ lại',
         showCancel: true,
@@ -901,33 +1142,229 @@ async function refresh() {
       })
       if (!approved) return
 
+      const release = setButtonBusy(button, true, 'Đang xóa')
       try {
-        const result = await api(`/public-bucket-proxy/files/${encodePathForUrl(path)}`, { method: 'DELETE' })
-        logEl.textContent = JSON.stringify(result, null, 2)
-        await refresh()
+        await api(`/admin/api/files/${encodeURIComponent(encodedKey)}`, { method: 'DELETE' })
+        showToast('Đã xóa file public.', 'success')
+        if (state.publicFilesLoaded) await loadPublicFiles(false)
+        if (state.allFilesLoaded) await loadAllFiles(false)
       } catch (err) {
-        logEl.textContent = String(err)
+        logMessage(String(err))
+        showToast(String(err), 'error')
+      } finally {
+        release()
       }
     })
   })
 }
 
-async function runTest(accountId) {
-  logEl.textContent = 'Đang test account ' + accountId + '...'
+function filterManagedFiles(files) {
+  const accountId = allFilesAccountFilter.value
+  const scope = allFilesScopeFilter.value
+  const search = allFilesSearchInput.value.trim().toLowerCase()
+
+  return files.filter((file) => {
+    if (accountId && file.accountId !== accountId) return false
+    if (scope !== 'all' && file.routeScope !== scope) return false
+    if (search) {
+      const haystack = [file.accountId, file.logicalBucket, file.objectKey, file.backendKey, file.routeScope, file.contentType, file.state].join('\n').toLowerCase()
+      if (!haystack.includes(search)) return false
+    }
+    return true
+  })
+}
+
+function renderAllFiles() {
+  populateAllFilesAccountFilter()
+  if (!state.allFilesLoaded) {
+    allFilesBody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Danh sách tất cả file chưa được tải. Bấm refresh để lấy dữ liệu mới.</div></td></tr>`
+    return
+  }
+
+  const files = filterManagedFiles(state.allFiles)
+  allFilesStatus.textContent = `Hiển thị ${files.length}/${state.allFiles.length} file theo bộ lọc hiện tại.`
+
+  if (files.length === 0) {
+    allFilesBody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Không có file nào khớp bộ lọc hiện tại.</div></td></tr>`
+    return
+  }
+
+  allFilesBody.innerHTML = files.map((file) => `
+    <tr>
+      <td data-label="Account / Scope">${escapeHtml(file.accountId)}<br/><span class="hint">scope=${escapeHtml(file.routeScope)} | state=${escapeHtml(file.state || '-')}</span></td>
+      <td data-label="Bucket / Object key">${escapeHtml(file.logicalBucket)}<br/><span class="hint">${escapeHtml(file.objectKey)}</span></td>
+      <td data-label="Backend key">${escapeHtml(file.backendKey)}${file.publicUrl ? `<br/><a class="hint" href="${escapeHtml(file.publicUrl)}" target="_blank" rel="noreferrer">public link</a>` : ''}</td>
+      <td data-label="Meta">${fmtBytes(file.sizeBytes)}<br/><span class="hint">${escapeHtml(file.contentType || '-')}</span></td>
+      <td data-label="Updated">${fmtTime(file.updatedAt || file.uploadedAt)}</td>
+      <td data-label="Action">
+        <button class="secondary" data-file-select="${escapeHtml(file.encodedKey)}">Chọn</button>
+        ${file.publicUrl ? `<button data-file-copy="${escapeHtml(file.encodedKey)}">Copy link</button>` : ''}
+        <button class="danger" data-file-delete="${escapeHtml(file.encodedKey)}">Delete</button>
+      </td>
+    </tr>
+  `).join('')
+
+  allFilesBody.querySelectorAll('button[data-file-select]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const file = state.allFiles.find((item) => item.encodedKey === button.dataset.fileSelect)
+      if (!file) return
+      fillManagedFileForm(file)
+      setActiveTab('all-files')
+    })
+  })
+
+  allFilesBody.querySelectorAll('button[data-file-copy]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const file = state.allFiles.find((item) => item.encodedKey === button.dataset.fileCopy)
+      try {
+        if (!file?.publicUrl) throw new Error('File này không có public link')
+        await copyText(file.publicUrl)
+        showToast('Đã copy link file.', 'success')
+        logMessage(`Đã copy link: ${file.publicUrl}`)
+      } catch (err) {
+        showToast(String(err), 'error')
+        logMessage(String(err))
+      }
+    })
+  })
+
+  allFilesBody.querySelectorAll('button[data-file-delete]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const file = state.allFiles.find((item) => item.encodedKey === button.dataset.fileDelete)
+      if (!file) return
+      const approved = await openModal({
+        title: 'Xác nhận xóa file',
+        message: `Bạn có chắc muốn xóa file này?\n\nAccount: ${file.accountId}\nBucket: ${file.logicalBucket}\nObject: ${file.objectKey}`,
+        confirmText: 'Xóa',
+        cancelText: 'Giữ lại',
+        showCancel: true,
+        tone: 'warn',
+      })
+      if (!approved) return
+
+      const release = setButtonBusy(button, true, 'Đang xóa')
+      try {
+        await api(`/admin/api/files/${encodeURIComponent(file.encodedKey)}`, { method: 'DELETE' })
+        showToast('Đã xóa file.', 'success')
+        if (document.getElementById('managedFileEncodedKey').value === file.encodedKey) resetManagedFileForm()
+        await loadAllFiles(false)
+        if (file.routeScope === 'public' && state.publicFilesLoaded) await loadPublicFiles(false)
+      } catch (err) {
+        showToast(String(err), 'error')
+        logMessage(String(err))
+      } finally {
+        release()
+      }
+    })
+  })
+}
+
+function populateAllFilesAccountFilter() {
+  const current = allFilesAccountFilter.value
+  const options = ['<option value="">Tất cả account</option>']
+  state.core.accounts.forEach((account) => {
+    options.push(`<option value="${escapeHtml(account.accountId)}">${escapeHtml(account.accountId)}</option>`)
+  })
+  allFilesAccountFilter.innerHTML = options.join('')
+  if (current && state.core.accounts.some((account) => account.accountId === current)) {
+    allFilesAccountFilter.value = current
+  }
+}
+
+async function loadCoreData(showInfoToast = false) {
+  const body = await api('/admin/api/overview')
+  state.core = body
+  renderOverview()
+  renderJobs()
+  renderAccounts()
+  populateAllFilesAccountFilter()
+  if (showInfoToast) showToast('Đã refresh dữ liệu lõi.', 'info')
+}
+
+async function loadPublicFiles(showInfoToast = false) {
+  const body = await api('/admin/api/public-files')
+  state.publicFiles = body.files || []
+  state.publicFilesLoaded = true
+  publicFilesStatus.textContent = `Đã tải ${state.publicFiles.length} file public.`
+  renderPublicFiles()
+  if (showInfoToast) showToast('Đã refresh danh sách file public.', 'info')
+}
+
+async function loadAllFiles(showInfoToast = false) {
+  const body = await api('/admin/api/files')
+  state.allFiles = body.files || []
+  state.allFilesLoaded = true
+  renderAllFiles()
+  if (showInfoToast) showToast('Đã refresh danh sách tất cả file.', 'info')
+}
+
+async function runTest(accountId, button = null) {
+  const release = button ? setButtonBusy(button, true, 'Đang test') : () => {}
+  logMessage(`Đang test account ${accountId}...`)
   try {
     const body = await api('/admin/api/test-s3', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ accountId })
+      body: JSON.stringify({ accountId }),
     })
-    logEl.textContent = JSON.stringify(body, null, 2)
+    logMessage('Kết quả test account', body)
+    showToast(`Đã test account ${accountId}.`, body.ok ? 'success' : 'error')
   } catch (err) {
-    logEl.textContent = String(err)
+    logMessage(String(err))
+    showToast(String(err), 'error')
+  } finally {
+    release()
   }
 }
 
+function isStandaloneMode() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+}
+
+function setupInstallApp() {
+  if (isStandaloneMode()) {
+    installHint.textContent = 'Ứng dụng đang chạy ở chế độ standalone.'
+    installBtn.hidden = true
+    return
+  }
+
+  if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+    installHint.textContent = 'iOS: bấm Share → Add to Home Screen để cài app.'
+  } else {
+    installHint.textContent = 'Bạn có thể cài app nếu trình duyệt hỗ trợ. Khi nút xuất hiện, bấm để tạo shortcut.'
+  }
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault()
+    deferredInstallPrompt = event
+    installBtn.hidden = false
+    installHint.textContent = 'Đã sẵn sàng cài app. Bấm nút Install app để tạo shortcut.'
+  })
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null
+    installBtn.hidden = true
+    installHint.textContent = 'Đã cài đặt app thành công.'
+  })
+}
+
+accountServiceParseBtn.addEventListener('click', async () => {
+  const release = setButtonBusy(accountServiceParseBtn, true, 'Đang parse')
+  try {
+    await runServiceParseFlow()
+  } catch (err) {
+    accountServicePreviewEl.textContent = String(err)
+    logMessage(String(err))
+    await openModal({ title: 'Lỗi parse', message: String(err), confirmText: 'Đã hiểu', showCancel: false, tone: 'warn' })
+  } finally {
+    release()
+  }
+})
+
 cronForm.addEventListener('submit', async (event) => {
   event.preventDefault()
+  const submitBtn = document.getElementById('cronSubmitBtn')
+  const release = setButtonBusy(submitBtn, true, 'Đang lưu')
   try {
     const payload = {
       jobId: document.getElementById('jobId').value.trim() || undefined,
@@ -938,36 +1375,27 @@ cronForm.addEventListener('submit', async (event) => {
       enabled: document.getElementById('jobEnabled').value === 'true',
       payload: JSON.parse(document.getElementById('jobPayload').value || '{}'),
     }
-    await api('/admin/api/cron-jobs', {
+    const result = await api('/admin/api/cron-jobs', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload),
     })
-    await refresh()
+    cronRunLog.textContent = JSON.stringify(result, null, 2)
+    showToast('Đã lưu cron job.', 'success')
+    await loadCoreData(false)
   } catch (err) {
-    logEl.textContent = String(err)
-  }
-})
-
-accountServiceParseBtn.addEventListener('click', async () => {
-  accountServicePreviewEl.textContent = 'Đang parse...'
-  try {
-    await runServiceParseFlow()
-  } catch (err) {
-    accountServicePreviewEl.textContent = String(err)
-    logEl.textContent = String(err)
-    await openModal({
-      title: 'Lỗi parse',
-      message: String(err),
-      confirmText: 'Đã hiểu',
-      showCancel: false,
-      tone: 'warn',
-    })
+    cronRunLog.textContent = String(err)
+    showToast(String(err), 'error')
+  } finally {
+    release()
   }
 })
 
 accountForm.addEventListener('submit', async (event) => {
   event.preventDefault()
+  const submitBtn = document.getElementById('accountSubmitBtn')
+  const release = setButtonBusy(submitBtn, true, 'Đang lưu')
+  accountsStatus.textContent = 'Đang lưu account...'
   try {
     const payload = buildAccountPayloadFromForm()
     const body = await api('/admin/api/accounts', {
@@ -976,29 +1404,60 @@ accountForm.addEventListener('submit', async (event) => {
       body: JSON.stringify(payload),
     })
     if (body.warning) {
-      logEl.textContent = body.warning
+      logMessage('Lưu account có cảnh báo', body)
+      showToast(body.warning, 'info')
     } else {
-      logEl.textContent = JSON.stringify(body, null, 2)
+      logMessage('Lưu account thành công', body)
+      showToast(`Lưu account ${payload.accountId} thành công.`, 'success')
     }
-    await refresh()
+    resetAccountForm()
+    resetAccountServiceInputs()
+    accountsStatus.textContent = `Đã lưu account ${payload.accountId} thành công.`
+    await loadCoreData(false)
   } catch (err) {
-    logEl.textContent = String(err)
+    accountsStatus.textContent = `Lưu account thất bại: ${String(err)}`
+    logMessage(String(err))
+    showToast(`Lưu account thất bại: ${String(err)}`, 'error')
+  } finally {
+    release()
   }
 })
 
 accountResetBtn.addEventListener('click', () => {
   resetAccountForm()
+  accountsStatus.textContent = 'Đã clear form account.'
 })
 
 publicFileForm.addEventListener('submit', async (event) => {
   event.preventDefault()
+  const submitBtn = document.getElementById('publicFileSubmitBtn')
+  const release = setButtonBusy(submitBtn, true, 'Đang upload')
   try {
-    const result = await uploadPublicFile()
+    const fileInput = document.getElementById('publicFileInput')
+    const pickedFile = fileInput.files && fileInput.files[0]
+    const filePath = (document.getElementById('publicFilePath').value.trim() || pickedFile?.name || '').replace(/^\/+/, '')
+    const contentType = document.getElementById('publicFileContentType').value.trim() || pickedFile?.type || 'application/octet-stream'
+    if (!filePath) throw new Error('Bạn cần nhập path hoặc chọn file để upload')
+    if (!pickedFile) throw new Error('Bạn cần chọn file để upload/replace')
+
+    const result = await api(`/public-bucket-proxy/files/${encodePathForUrl(filePath)}`, {
+      method: 'PUT',
+      headers: {
+        'content-type': 'application/octet-stream',
+        'x-public-file-content-type': contentType,
+      },
+      body: pickedFile,
+    })
     resetPublicFileForm()
-    logEl.textContent = JSON.stringify(result, null, 2)
-    await refresh()
+    logMessage('Upload file public thành công', result)
+    showToast('Đã upload file public.', 'success')
+    if (state.publicFilesLoaded) await loadPublicFiles(false)
+    if (state.allFilesLoaded) await loadAllFiles(false)
   } catch (err) {
-    logEl.textContent = String(err)
+    logMessage(String(err))
+    showToast(String(err), 'error')
+  } finally {
+    release()
   }
 })
 
@@ -1009,30 +1468,99 @@ publicFileResetBtn.addEventListener('click', () => {
 document.getElementById('publicFileInput').addEventListener('change', (event) => {
   const file = event.target.files && event.target.files[0]
   if (!file) return
-
   const pathEl = document.getElementById('publicFilePath')
   const contentTypeEl = document.getElementById('publicFileContentType')
   if (!pathEl.value.trim()) pathEl.value = file.name
   if (!contentTypeEl.value.trim() && file.type) contentTypeEl.value = file.type
 })
 
-publicFileRefreshBtn.addEventListener('click', async () => {
+managedFileForm.addEventListener('submit', async (event) => {
+  event.preventDefault()
+  const encodedKey = document.getElementById('managedFileEncodedKey').value.trim()
+  const fileInput = document.getElementById('managedFileInput')
+  const pickedFile = fileInput.files && fileInput.files[0]
+  if (!encodedKey) {
+    showToast('Bạn cần chọn file trong bảng trước.', 'error')
+    return
+  }
+  if (!pickedFile) {
+    showToast('Bạn cần chọn file mới để replace.', 'error')
+    return
+  }
+
+  const release = setButtonBusy(document.getElementById('managedFileReplaceBtn'), true, 'Đang replace')
   try {
-    await refresh()
+    const result = await api(`/admin/api/files/${encodeURIComponent(encodedKey)}`, {
+      method: 'PUT',
+      headers: {
+        'content-type': 'application/octet-stream',
+        'x-file-content-type': document.getElementById('managedFileContentType').value.trim() || pickedFile.type || 'application/octet-stream',
+      },
+      body: pickedFile,
+    })
+    document.getElementById('managedFileInput').value = ''
+    logMessage('Replace file thành công', result)
+    showToast('Đã replace file đã chọn.', 'success')
+    await loadAllFiles(false)
+    if (state.publicFilesLoaded) await loadPublicFiles(false)
   } catch (err) {
-    logEl.textContent = String(err)
+    logMessage(String(err))
+    showToast(String(err), 'error')
+  } finally {
+    release()
   }
 })
 
+managedFileDeleteBtn.addEventListener('click', async () => {
+  const encodedKey = document.getElementById('managedFileEncodedKey').value.trim()
+  const accountId = document.getElementById('managedFileAccountId').value.trim()
+  const objectKey = document.getElementById('managedFileObjectKey').value.trim()
+  if (!encodedKey) {
+    showToast('Bạn cần chọn file trong bảng trước.', 'error')
+    return
+  }
+
+  const approved = await openModal({
+    title: 'Xác nhận xóa file đã chọn',
+    message: `Bạn có chắc muốn xóa file này?\n\nAccount: ${accountId}\nObject: ${objectKey}`,
+    confirmText: 'Xóa',
+    cancelText: 'Giữ lại',
+    showCancel: true,
+    tone: 'warn',
+  })
+  if (!approved) return
+
+  const release = setButtonBusy(managedFileDeleteBtn, true, 'Đang xóa')
+  try {
+    const result = await api(`/admin/api/files/${encodeURIComponent(encodedKey)}`, { method: 'DELETE' })
+    logMessage('Xóa file thành công', result)
+    resetManagedFileForm()
+    showToast('Đã xóa file đã chọn.', 'success')
+    await loadAllFiles(false)
+    if (state.publicFilesLoaded) await loadPublicFiles(false)
+  } catch (err) {
+    logMessage(String(err))
+    showToast(String(err), 'error')
+  } finally {
+    release()
+  }
+})
+
+managedFileResetBtn.addEventListener('click', () => {
+  resetManagedFileForm()
+})
+
+allFilesAccountFilter.addEventListener('change', renderAllFiles)
+allFilesScopeFilter.addEventListener('change', renderAllFiles)
+allFilesSearchInput.addEventListener('input', renderAllFiles)
+
 runtimeExportBtn.addEventListener('click', async () => {
+  const release = setButtonBusy(runtimeExportBtn, true, 'Đang export')
   runtimeIoLog.textContent = 'Đang export runtime JSON...'
   try {
     const res = await fetch('/admin/api/runtime-export')
     const blob = await res.blob()
-    if (!res.ok) {
-      throw new Error(await blob.text())
-    }
-
+    if (!res.ok) throw new Error(await blob.text())
     const disposition = res.headers.get('content-disposition') || ''
     const match = disposition.match(/filename="([^"]+)"/i)
     const filename = match?.[1] || `s3proxy-runtime-export-${Date.now()}.json`
@@ -1044,10 +1572,13 @@ runtimeExportBtn.addEventListener('click', async () => {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
-
     runtimeIoLog.textContent = `Đã export runtime JSON: ${filename}`
+    showToast('Đã export runtime JSON.', 'success')
   } catch (err) {
     runtimeIoLog.textContent = String(err)
+    showToast(String(err), 'error')
+  } finally {
+    release()
   }
 })
 
@@ -1068,6 +1599,7 @@ runtimeImportBtn.addEventListener('click', async () => {
   })
   if (!approved) return
 
+  const release = setButtonBusy(runtimeImportBtn, true, 'Đang import')
   runtimeIoLog.textContent = 'Đang import runtime JSON...'
   try {
     const text = await file.text()
@@ -1078,9 +1610,15 @@ runtimeImportBtn.addEventListener('click', async () => {
       body: JSON.stringify(payload),
     })
     runtimeIoLog.textContent = JSON.stringify(result, null, 2)
-    await refresh()
+    showToast('Đã import runtime JSON.', 'success')
+    await loadCoreData(false)
+    if (state.publicFilesLoaded) await loadPublicFiles(false)
+    if (state.allFilesLoaded) await loadAllFiles(false)
   } catch (err) {
     runtimeIoLog.textContent = String(err)
+    showToast(String(err), 'error')
+  } finally {
+    release()
   }
 })
 
@@ -1089,7 +1627,6 @@ installBtn.addEventListener('click', async () => {
     installHint.textContent = 'Trình duyệt chưa hỗ trợ prompt cài đặt tại thời điểm này.'
     return
   }
-
   deferredInstallPrompt.prompt()
   try {
     await deferredInstallPrompt.userChoice
@@ -1100,18 +1637,98 @@ installBtn.addEventListener('click', async () => {
   installBtn.hidden = true
 })
 
-refreshBtn.addEventListener('click', refresh)
+refreshBtn.addEventListener('click', async () => {
+  const release = setButtonBusy(refreshBtn, true, 'Đang refresh')
+  try {
+    await loadCoreData(true)
+  } catch (err) {
+    logMessage(String(err))
+    showToast(String(err), 'error')
+  } finally {
+    release()
+  }
+})
+
+overviewRefreshBtn.addEventListener('click', async () => {
+  const release = setButtonBusy(overviewRefreshBtn, true, 'Đang refresh')
+  try {
+    await loadCoreData(true)
+  } catch (err) {
+    logMessage(String(err))
+    showToast(String(err), 'error')
+  } finally {
+    release()
+  }
+})
+
+cronRefreshBtn.addEventListener('click', async () => {
+  const release = setButtonBusy(cronRefreshBtn, true, 'Đang refresh')
+  try {
+    await loadCoreData(true)
+  } catch (err) {
+    cronRunLog.textContent = String(err)
+    showToast(String(err), 'error')
+  } finally {
+    release()
+  }
+})
+
+accountsRefreshBtn.addEventListener('click', async () => {
+  const release = setButtonBusy(accountsRefreshBtn, true, 'Đang refresh')
+  try {
+    await loadCoreData(true)
+  } catch (err) {
+    accountsStatus.textContent = String(err)
+    showToast(String(err), 'error')
+  } finally {
+    release()
+  }
+})
+
+publicFileRefreshBtn.addEventListener('click', async () => {
+  const release = setButtonBusy(publicFileRefreshBtn, true, 'Đang refresh')
+  publicFilesStatus.textContent = 'Đang tải danh sách file public...'
+  try {
+    await loadPublicFiles(true)
+  } catch (err) {
+    publicFilesStatus.textContent = String(err)
+    logMessage(String(err))
+    showToast(String(err), 'error')
+  } finally {
+    release()
+  }
+})
+
+allFilesRefreshBtn.addEventListener('click', async () => {
+  const release = setButtonBusy(allFilesRefreshBtn, true, 'Đang refresh')
+  allFilesStatus.textContent = 'Đang tải danh sách tất cả file...'
+  try {
+    await loadAllFiles(true)
+  } catch (err) {
+    allFilesStatus.textContent = String(err)
+    logMessage(String(err))
+    showToast(String(err), 'error')
+  } finally {
+    release()
+  }
+})
+
 testAllBtn.addEventListener('click', async () => {
-  logEl.textContent = 'Đang chạy test all active accounts...'
+  const release = setButtonBusy(testAllBtn, true, 'Đang test')
+  logMessage('Đang chạy test all active accounts...')
   try {
     const body = await api('/admin/api/test-s3', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ allActive: true })
+      body: JSON.stringify({ allActive: true }),
     })
-    logEl.textContent = JSON.stringify(body, null, 2)
+    logMessage('Kết quả test all active accounts', body)
+    showToast('Đã chạy test tất cả active accounts.', body.ok ? 'success' : 'error')
   } catch (err) {
-    logEl.textContent = String(err)
+    logMessage(String(err))
+    showToast(String(err), 'error')
+  } finally {
+    release()
   }
 })
 
@@ -1119,8 +1736,12 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/admin/sw.js', { scope: '/admin/' }).catch(() => {})
 }
 setupInstallApp()
-
-refresh().catch((err) => { logEl.textContent = String(err) })
+renderPublicFiles()
+renderAllFiles()
+loadCoreData(false).catch((err) => {
+  logMessage(String(err))
+  showToast(String(err), 'error')
+})
 </script>
 </body>
 </html>

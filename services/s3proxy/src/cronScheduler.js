@@ -155,11 +155,20 @@ function sanitizeJobInput(payload = {}, existing = null) {
 
 async function runKeepaliveScan(account, jobPayload = {}) {
   const client = createS3Client(account)
+  const maxKeys = Number(jobPayload.maxKeys ?? 1)
+  const prefix = String(jobPayload.prefix ?? config.CRON_KEEPALIVE_PREFIX)
+
   await client.send(new ListObjectsV2Command({
     Bucket: account.bucket,
-    MaxKeys: Number(jobPayload.maxKeys ?? 1),
-    Prefix: String(jobPayload.prefix ?? config.CRON_KEEPALIVE_PREFIX),
+    MaxKeys: maxKeys,
+    Prefix: prefix,
   }))
+
+  return {
+    operation: 'ListObjectsV2',
+    maxKeys,
+    prefix,
+  }
 }
 
 async function runKeepaliveTouch(account, jobPayload = {}) {
@@ -174,6 +183,12 @@ async function runKeepaliveTouch(account, jobPayload = {}) {
     Body: `${bodyPrefix} ${new Date().toISOString()}\n`,
     ContentType: 'text/plain; charset=utf-8',
   }))
+
+  return {
+    operation: 'PutObject',
+    key,
+    prefix,
+  }
 }
 
 async function runProbeActiveAccounts(account, jobPayload = {}) {
@@ -189,26 +204,94 @@ async function runProbeActiveAccounts(account, jobPayload = {}) {
     ContentType: 'text/plain; charset=utf-8',
   }))
   await client.send(new ListObjectsV2Command({ Bucket: account.bucket, Prefix: prefix, MaxKeys: 2 }))
+
+  return {
+    operation: 'PutObject+ListObjectsV2',
+    key,
+    prefix,
+    bytes: payload.length,
+  }
+}
+
+function toErrorMessage(err) {
+  return err?.message ?? String(err)
 }
 
 async function executeJobByKind(descriptor) {
   const payload = parsePayload(descriptor.payload_json)
   const accounts = getAllActiveAccounts()
+  const startedAt = Date.now()
+  const report = {
+    jobId: descriptor.job_id,
+    name: descriptor.name,
+    kind: descriptor.kind,
+    source: descriptor.source,
+    timezone: descriptor.timezone,
+    payload,
+    startedAt,
+    finishedAt: null,
+    durationMs: 0,
+    skipped: false,
+    ok: true,
+    targetCount: accounts.length,
+    successCount: 0,
+    errorCount: 0,
+    message: '',
+    accountResults: [],
+  }
 
   if (accounts.length === 0) {
+    report.skipped = true
+    report.message = 'No active account available for this cron job.'
+    report.finishedAt = Date.now()
+    report.durationMs = report.finishedAt - startedAt
     activeLogger.warn?.({ job: descriptor.job_id }, 'cron skipped because no active account')
-    return
+    return report
   }
 
   for (const account of accounts) {
-    if (descriptor.kind === JOB_KIND.KEEPALIVE_TOUCH) {
-      await runKeepaliveTouch(account, payload)
-    } else if (descriptor.kind === JOB_KIND.PROBE_ACTIVE_ACCOUNTS) {
-      await runProbeActiveAccounts(account, payload)
-    } else {
-      await runKeepaliveScan(account, payload)
+    const itemStartedAt = Date.now()
+    const item = {
+      accountId: account.account_id,
+      bucket: account.bucket,
+      endpoint: account.endpoint,
+      startedAt: itemStartedAt,
+      finishedAt: null,
+      durationMs: 0,
+      ok: false,
+      detail: null,
+      error: null,
+    }
+
+    try {
+      if (descriptor.kind === JOB_KIND.KEEPALIVE_TOUCH) {
+        item.detail = await runKeepaliveTouch(account, payload)
+      } else if (descriptor.kind === JOB_KIND.PROBE_ACTIVE_ACCOUNTS) {
+        item.detail = await runProbeActiveAccounts(account, payload)
+      } else {
+        item.detail = await runKeepaliveScan(account, payload)
+      }
+      item.ok = true
+      report.successCount += 1
+    } catch (err) {
+      item.error = toErrorMessage(err)
+      report.errorCount += 1
+      report.ok = false
+      activeLogger.warn?.({ err, job: descriptor.job_id, accountId: account.account_id }, 'cron job account execution failed')
+    } finally {
+      item.finishedAt = Date.now()
+      item.durationMs = item.finishedAt - itemStartedAt
+      report.accountResults.push(item)
     }
   }
+
+  report.finishedAt = Date.now()
+  report.durationMs = report.finishedAt - startedAt
+  report.message = report.ok
+    ? `Completed ${report.successCount}/${report.targetCount} account(s) successfully.`
+    : `Completed with ${report.errorCount} error(s) across ${report.targetCount} account(s).`
+
+  return report
 }
 
 function toRuntimeDescriptor(row) {
@@ -224,6 +307,7 @@ function toRuntimeDescriptor(row) {
     lastRunError: null,
     lastDurationMs: null,
     lastTriggerMinute: null,
+    lastRunReport: null,
   }
 }
 
@@ -239,6 +323,7 @@ function upsertRuntimeDescriptor(row) {
     descriptor.lastRunError = previous.lastRunError
     descriptor.lastDurationMs = previous.lastDurationMs
     descriptor.lastTriggerMinute = previous.lastTriggerMinute
+    descriptor.lastRunReport = previous.lastRunReport
   }
   jobs.set(row.job_id, descriptor)
   return descriptor
@@ -248,17 +333,15 @@ async function runDescriptor(descriptor) {
   const startedAt = Date.now()
   descriptor.lastRunAt = startedAt
 
-  try {
-    await executeJobByKind(descriptor)
-    descriptor.lastRunStatus = 'ok'
-    descriptor.lastRunError = null
-  } catch (err) {
-    descriptor.lastRunStatus = 'error'
-    descriptor.lastRunError = err?.message ?? String(err)
-    throw err
-  } finally {
-    descriptor.lastDurationMs = Date.now() - startedAt
-  }
+  const report = await executeJobByKind(descriptor)
+  descriptor.lastRunReport = report
+  descriptor.lastRunStatus = report.ok ? 'ok' : 'error'
+  descriptor.lastRunError = report.ok
+    ? null
+    : (report.accountResults.find((item) => !item.ok)?.error || report.message)
+  descriptor.lastDurationMs = Date.now() - startedAt
+
+  return report
 }
 
 function ensureDefaultJobs() {
@@ -310,8 +393,12 @@ function schedulerTick() {
     if (descriptor.lastTriggerMinute === minuteKey) continue
     descriptor.lastTriggerMinute = minuteKey
 
-    runDescriptor(descriptor).catch((err) => {
-      activeLogger.error?.({ err, job: descriptor.job_id }, 'cron job failed')
+    runDescriptor(descriptor).then((report) => {
+      if (!report.ok) {
+        activeLogger.error?.({ job: descriptor.job_id, report }, 'cron job finished with errors')
+      }
+    }).catch((err) => {
+      activeLogger.error?.({ err, job: descriptor.job_id }, 'cron job failed unexpectedly')
     })
   }
 }
@@ -332,6 +419,7 @@ export function listCronJobs() {
       lastRunStatus: job.lastRunStatus,
       lastRunError: job.lastRunError,
       lastDurationMs: job.lastDurationMs,
+      lastRunReport: job.lastRunReport,
     }))
 }
 
@@ -374,8 +462,11 @@ export async function runCronJobNow(jobId) {
   if (!descriptor) {
     throw new Error(`Cron job not found: ${jobId}`)
   }
-  await runDescriptor(descriptor)
-  return descriptor
+  const report = await runDescriptor(descriptor)
+  return {
+    ...descriptor,
+    lastRunReport: report,
+  }
 }
 
 export async function startCronScheduler(logger = console) {
@@ -392,7 +483,11 @@ export async function startCronScheduler(logger = console) {
   if (config.CRON_RUN_ON_START) {
     for (const descriptor of jobs.values()) {
       if (!descriptor.enabled || descriptor.source !== 'system') continue
-      runDescriptor(descriptor).catch((err) => {
+      runDescriptor(descriptor).then((report) => {
+        if (!report.ok) {
+          logger.error?.({ job: descriptor.job_id, report }, 'initial cron run finished with errors')
+        }
+      }).catch((err) => {
         logger.error?.({ err, job: descriptor.job_id }, 'initial cron run failed')
       })
     }

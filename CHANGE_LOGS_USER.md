@@ -53,3 +53,22 @@ If upgrading from the previous `docker-compose.yml` setup:
 See `docs/DEPLOY.md` for the full migration guide.
 
 ---
+
+## [2.0.1] — 2026-04-16 — Admin Tabs + File Manager
+
+### Có gì mới
+
+- Trang admin đã được tách thành các tab rõ ràng: Tổng quan, Cron jobs, Accounts, Public Bucket Proxy, Tất cả file, Runtime, Logs
+- Có thêm tab **Tất cả file** để xem file của tất cả account hoặc lọc theo từng account
+- Có thể **replace** hoặc **xóa** file đã track ngay trong admin mà không cần reload cả trang
+- Cron jobs có thể **run trực tiếp** và xem log / báo cáo chi tiết ngay trên giao diện
+
+### Cải thiện trải nghiệm dùng
+
+- Bảng **Accounts** mặc định sắp theo ngày thêm account mới nhất
+- Có thể bấm vào header để sắp xếp account theo các tiêu chí chính
+- Tab **Public Bucket Proxy** chỉ tải danh sách file khi bạn bấm refresh, giúp vào trang nhanh hơn
+- Các thao tác nặng đã có **loading**, **thông báo thành công / thất bại**, và refresh dữ liệu cục bộ theo từng tab
+- Khi lưu account thành công, form account và phần thêm nhanh từ dịch vụ S3 sẽ tự clear
+
+---

@@ -4,6 +4,7 @@
  */
 
 import { randomBytes } from 'crypto'
+import { Readable } from 'stream'
 import { readFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
@@ -25,11 +26,14 @@ import {
   getTrackedRoutesByAccount,
   listPublicRoutes,
   ROUTE_SCOPE,
+  ROUTE_STATE,
+  commitUploadedObjectMetadata,
+  finalizeRouteDelete,
   upsertBucketRecord,
   upsertRoute,
   upsertAccount,
 } from '../db.js'
-import { getAccountsStats, reloadAccountsFromRTDB, reloadAccountsFromSQLite } from '../accountPool.js'
+import { getAccountsStats, reloadAccountsFromRTDB, reloadAccountsFromSQLite, syncAccountsFromRows } from '../accountPool.js'
 import { rtdbBatchPatch } from '../firebase.js'
 import { buildRtdbAccountPath, suggestAccountId, validateAccountIdForRealtime } from '../accountId.js'
 import { getRtdbState } from './health.js'
@@ -50,6 +54,8 @@ import {
 } from '../supabaseS3.js'
 import { buildRtdbRouteDocument, encodeKey, PUBLIC_PROXY_BUCKET } from '../metadata.js'
 import { buildDirectPublicObjectUrl } from '../publicObjectUrl.js'
+import { syncAccountsUsageBatch, syncRouteToRtdb } from '../controlPlane.js'
+import { refreshMetadataMetrics } from './metrics.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const adminHtml = readFileSync(join(__dirname, '..', 'admin-ui.html'), 'utf-8')
@@ -609,6 +615,114 @@ function parseBodyObject(body) {
   return body
 }
 
+function normalizeQueryString(value) {
+  return String(value ?? '').trim()
+}
+
+function getPayloadStream(request) {
+  if (request.body && typeof request.body.pipe === 'function') {
+    return request.body
+  }
+  if (Buffer.isBuffer(request.body)) {
+    return Readable.from(request.body)
+  }
+  if (request.body instanceof Uint8Array) {
+    return Readable.from(Buffer.from(request.body))
+  }
+  if (typeof request.body === 'string') {
+    return Readable.from(Buffer.from(request.body))
+  }
+  return request.raw
+}
+
+async function readRequestBodyBuffer(request, maxBytes = 250 * 1024 * 1024) {
+  if (Buffer.isBuffer(request.body)) return request.body
+  if (request.body instanceof Uint8Array) return Buffer.from(request.body)
+  if (typeof request.body === 'string') return Buffer.from(request.body)
+
+  const source = request.body && typeof request.body[Symbol.asyncIterator] === 'function'
+    ? request.body
+    : request.raw
+
+  const chunks = []
+  let total = 0
+
+  for await (const chunk of source) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+    total += buffer.length
+    if (total > maxBytes) {
+      const err = new Error(`Request body exceeds ${maxBytes} bytes`)
+      err.statusCode = 413
+      throw err
+    }
+    chunks.push(buffer)
+  }
+
+  return Buffer.concat(chunks)
+}
+
+function getManagedFileDirectUrl(route) {
+  if (!route) return null
+  if ((route.route_scope ?? ROUTE_SCOPE.MAIN) !== ROUTE_SCOPE.PUBLIC) return null
+  const account = getAccountById(route.account_id)
+  return route.public_url ?? buildDirectPublicObjectUrl(account, route.backend_key)
+}
+
+function toAdminTrackedFile(route) {
+  return {
+    encodedKey: route.encoded_key,
+    accountId: route.account_id,
+    logicalBucket: route.bucket,
+    objectKey: route.object_key,
+    backendKey: route.backend_key,
+    routeScope: route.route_scope ?? ROUTE_SCOPE.MAIN,
+    state: route.state,
+    syncState: route.sync_state,
+    reconcileStatus: route.reconcile_status,
+    contentType: route.content_type ?? 'application/octet-stream',
+    sizeBytes: route.size_bytes ?? 0,
+    etag: route.etag ?? null,
+    uploadedAt: route.uploaded_at ?? null,
+    updatedAt: route.updated_at ?? null,
+    lastModified: route.last_modified ?? null,
+    deletedAt: route.deleted_at ?? null,
+    metadataVersion: route.metadata_version ?? 1,
+    publicUrl: getManagedFileDirectUrl(route),
+  }
+}
+
+function isDeletedRoute(route) {
+  return !route || route.state === ROUTE_STATE.DELETED || route.deleted_at !== null
+}
+
+function matchesManagedFileSearch(route, search) {
+  if (!search) return true
+  const haystack = [
+    route.account_id,
+    route.bucket,
+    route.object_key,
+    route.backend_key,
+    route.route_scope,
+    route.content_type,
+    route.state,
+  ].join('\n').toLowerCase()
+  return haystack.includes(search.toLowerCase())
+}
+
+async function syncRouteAndAccountUsage(routeResult, request) {
+  if (!routeResult?.route) return
+  syncAccountsFromRows(routeResult.affectedAccounts ?? [])
+  refreshMetadataMetrics()
+
+  try {
+    await syncRouteToRtdb(routeResult.route)
+  } catch (err) {
+    request.log.warn({ err, encodedKey: routeResult.route.encoded_key }, 'admin route RTDB sync failed')
+  }
+
+  await syncAccountsUsageBatch(routeResult.affectedAccounts ?? [], request.log)
+}
+
 function toAdminPublicFile(route) {
   const account = getAccountById(route.account_id)
   const directUrl = route.public_url ?? buildDirectPublicObjectUrl(account, route.backend_key)
@@ -633,6 +747,12 @@ function toAdminPublicFile(route) {
 }
 
 export default async function adminRoutes(fastify, _opts) {
+  try {
+    fastify.addContentTypeParser('*', (request, payload, done) => done(null, payload))
+  } catch {
+    // parser may already exist in current encapsulation context.
+  }
+
   fastify.get('/admin', {
     config: { skipAuth: true },
   }, async (_request, reply) => {
@@ -677,7 +797,6 @@ export default async function adminRoutes(fastify, _opts) {
   }, async (_request, reply) => {
     const stats = getAccountsStats()
     const accounts = getAllAccounts().map(toPublicAccount)
-    const publicFiles = listPublicRoutes().map(toAdminPublicFile)
     const rtdb = getRtdbState()
 
     reply.send({
@@ -689,7 +808,47 @@ export default async function adminRoutes(fastify, _opts) {
       jobs: listCronJobs(),
       cronKinds: getCronJobKinds(),
       accounts,
-      publicFiles,
+    })
+  })
+
+  fastify.get('/admin/api/public-files', {
+    config: { skipAuth: true },
+  }, async (request, reply) => {
+    const prefix = normalizeQueryString(request.query?.prefix)
+    const files = listPublicRoutes(prefix).map(toAdminPublicFile)
+    return reply.send({
+      ok: true,
+      total: files.length,
+      files,
+    })
+  })
+
+  fastify.get('/admin/api/files', {
+    config: { skipAuth: true },
+  }, async (request, reply) => {
+    const accountId = normalizeQueryString(request.query?.accountId)
+    const scope = normalizeQueryString(request.query?.scope).toLowerCase()
+    const search = normalizeQueryString(request.query?.search)
+
+    let routes = getAllRoutes().filter((route) => !isDeletedRoute(route))
+
+    if (accountId) {
+      routes = routes.filter((route) => route.account_id === accountId)
+    }
+
+    if ([ROUTE_SCOPE.MAIN, ROUTE_SCOPE.PUBLIC].includes(scope)) {
+      routes = routes.filter((route) => (route.route_scope ?? ROUTE_SCOPE.MAIN) === scope)
+    }
+
+    if (search) {
+      routes = routes.filter((route) => matchesManagedFileSearch(route, search))
+    }
+
+    const files = routes.map(toAdminTrackedFile)
+    return reply.send({
+      ok: true,
+      total: files.length,
+      files,
     })
   })
 
@@ -965,6 +1124,125 @@ export default async function adminRoutes(fastify, _opts) {
     })
   })
 
+  fastify.put('/admin/api/files/:encodedKey', {
+    config: { skipAuth: true, rawBody: true },
+  }, async (request, reply) => {
+    const encodedKey = normalizeQueryString(request.params?.encodedKey)
+    if (!encodedKey) {
+      return reply.code(400).send({ ok: false, error: 'encodedKey is required' })
+    }
+
+    const existing = getAllRoutes().find((route) => route.encoded_key === encodedKey)
+    if (!existing || isDeletedRoute(existing)) {
+      return reply.code(404).send({ ok: false, error: 'tracked file not found' })
+    }
+
+    const account = getAccountById(existing.account_id)
+    if (!account) {
+      return reply.code(404).send({ ok: false, error: `backend account not found: ${existing.account_id}` })
+    }
+
+    let bodyBuffer
+    try {
+      bodyBuffer = await readRequestBodyBuffer(request)
+    } catch (err) {
+      const statusCode = Number(err?.statusCode) || 400
+      return reply.code(statusCode).send({ ok: false, error: err?.message ?? String(err) })
+    }
+
+    if (!bodyBuffer || bodyBuffer.length === 0) {
+      return reply.code(400).send({ ok: false, error: 'request body is empty' })
+    }
+
+    const contentType = normalizeQueryString(request.headers['x-file-content-type'])
+      || normalizeQueryString(request.headers['content-type'])
+      || existing.content_type
+      || 'application/octet-stream'
+
+    const client = createS3Client(account)
+    let putResult
+    try {
+      putResult = await client.send(new PutObjectCommand({
+        Bucket: account.bucket,
+        Key: existing.backend_key,
+        Body: bodyBuffer,
+        ContentType: contentType,
+      }))
+    } catch (err) {
+      return reply.code(502).send({ ok: false, error: err?.message ?? String(err) })
+    }
+
+    const now = Date.now()
+    const updated = commitUploadedObjectMetadata({
+      encoded_key: existing.encoded_key,
+      account_id: existing.account_id,
+      bucket: existing.bucket,
+      object_key: existing.object_key,
+      backend_key: existing.backend_key,
+      size_bytes: bodyBuffer.length,
+      etag: putResult?.ETag ? String(putResult.ETag).replace(/"/g, '') : existing.etag,
+      last_modified: now,
+      content_type: contentType,
+      uploaded_at: existing.uploaded_at ?? now,
+      updated_at: now,
+      public_url: existing.public_url ?? null,
+      route_scope: existing.route_scope ?? ROUTE_SCOPE.MAIN,
+      instance_id: config.INSTANCE_ID,
+    })
+
+    await syncRouteAndAccountUsage(updated, request)
+
+    return reply.send({
+      ok: true,
+      message: 'File replaced successfully',
+      file: toAdminTrackedFile(updated.route),
+    })
+  })
+
+  fastify.delete('/admin/api/files/:encodedKey', {
+    config: { skipAuth: true },
+  }, async (request, reply) => {
+    const encodedKey = normalizeQueryString(request.params?.encodedKey)
+    if (!encodedKey) {
+      return reply.code(400).send({ ok: false, error: 'encodedKey is required' })
+    }
+
+    const existing = getAllRoutes().find((route) => route.encoded_key === encodedKey)
+    if (!existing || isDeletedRoute(existing)) {
+      return reply.code(404).send({ ok: false, error: 'tracked file not found' })
+    }
+
+    const account = getAccountById(existing.account_id)
+    if (!account) {
+      return reply.code(404).send({ ok: false, error: `backend account not found: ${existing.account_id}` })
+    }
+
+    const client = createS3Client(account)
+    try {
+      await client.send(new DeleteObjectCommand({
+        Bucket: account.bucket,
+        Key: existing.backend_key,
+      }))
+    } catch (err) {
+      const message = err?.message ?? String(err)
+      const statusCode = Number(err?.$metadata?.httpStatusCode) || 502
+      const lower = String(message).toLowerCase()
+      const missing = statusCode === 404 || lower.includes('nosuchkey') || lower.includes('not found')
+      if (!missing) {
+        return reply.code(502).send({ ok: false, error: message })
+      }
+    }
+
+    const deleted = finalizeRouteDelete(encodedKey, Date.now())
+    await syncRouteAndAccountUsage(deleted, request)
+
+    return reply.send({
+      ok: true,
+      message: 'File deleted successfully',
+      file: deleted.route ? toAdminTrackedFile(deleted.route) : null,
+    })
+  })
+
   fastify.get('/admin/api/runtime-export', {
     config: { skipAuth: true },
   }, async (_request, reply) => {
@@ -1128,7 +1406,13 @@ export default async function adminRoutes(fastify, _opts) {
   }, async (request, reply) => {
     try {
       const result = await runCronJobNow(request.params.jobId)
-      return reply.send({ ok: true, jobId: result.job_id, lastRunStatus: result.lastRunStatus })
+      return reply.send({
+        ok: result.lastRunStatus === 'ok',
+        jobId: result.job_id,
+        lastRunStatus: result.lastRunStatus,
+        lastRunError: result.lastRunError,
+        report: result.lastRunReport ?? null,
+      })
     } catch (err) {
       return reply.code(404).send({ ok: false, error: err?.message ?? String(err) })
     }

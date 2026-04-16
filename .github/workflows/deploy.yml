@@ -5,9 +5,9 @@
 name: dockerstack-s3proxy
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "*/58 * * * *"
-      timezone: "Asia/Ho_Chi_Minh"
+  # schedule:
+  #   - cron: "*/58 * * * *"
+  #     timezone: 'Asia/Ho_Chi_Minh'
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -24,7 +24,7 @@ jobs:
     if: >-
       (github.event_name == 'workflow_dispatch' && github.repository == 'o861cloudflare/dockerstack-s3proxy') 
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '0 6 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
+      (github.repository == 'onghau/dockerstack-omniroute')
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/runs
