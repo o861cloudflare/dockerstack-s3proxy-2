@@ -6,19 +6,18 @@ name: dockerstack-s3proxy
 on:
   workflow_dispatch:
   schedule:
-    # Times below are UTC+7 (ICT) → stored as UTC (minus 7h)
     - cron: "3 22 * * *" # 05:03 ICT
     - cron: "3 23 * * *" # 06:03 ICT
-    - cron: "3  0 * * *" # 07:03 ICT
-    - cron: "3  1 * * *" # 08:03 ICT
-    - cron: "3  2 * * *" # 09:03 ICT
-    - cron: "3  3 * * *" # 10:03 ICT
-    - cron: "3  4 * * *" # 11:03 ICT
-    - cron: "3  5 * * *" # 12:03 ICT
-    - cron: "3  6 * * *" # 13:03 ICT
-    - cron: "3  7 * * *" # 14:03 ICT
-    - cron: "3  8 * * *" # 15:03 ICT
-    - cron: "3  9 * * *" # 16:03 ICT
+    - cron: "3 0 * * *" # 07:03 ICT
+    - cron: "3 1 * * *" # 08:03 ICT
+    - cron: "3 2 * * *" # 09:03 ICT
+    - cron: "3 3 * * *" # 10:03 ICT
+    - cron: "3 4 * * *" # 11:03 ICT
+    - cron: "3 5 * * *" # 12:03 ICT
+    - cron: "3 6 * * *" # 13:03 ICT
+    - cron: "3 7 * * *" # 14:03 ICT
+    - cron: "3 8 * * *" # 15:03 ICT
+    - cron: "3 9 * * *" # 16:03 ICT
     - cron: "3 10 * * *" # 17:03 ICT
     - cron: "3 11 * * *" # 18:03 ICT
     - cron: "3 12 * * *" # 19:03 ICT
