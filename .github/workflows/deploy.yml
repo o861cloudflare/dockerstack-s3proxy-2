@@ -51,49 +51,49 @@ jobs:
       ||
       (github.event_name == 'schedule' && github.event.schedule == '3 23 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 0 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 0 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 1 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 1 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 2 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 2 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 3 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 3 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 4 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 4 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 5 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 5 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 6 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 6 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 7 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 7 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 8 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 8 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 9 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 9 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 10 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 10 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 11 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 11 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 12 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 12 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 13 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 13 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 14 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 14 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 15 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 15 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 16 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 16 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 17 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 17 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 18 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 18 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 19 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 19 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 20 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 20 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
       ||
-      (github.event_name == 'schedule' && github.event.schedule == '3 21 * * *' && github.repository == 'hoaihao981/dockerstack-s3proxy')
+      (github.event_name == 'schedule' && github.event.schedule == '3 21 * * *' && github.repository == 'hoaihoa981/dockerstack-s3proxy')
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/runs
