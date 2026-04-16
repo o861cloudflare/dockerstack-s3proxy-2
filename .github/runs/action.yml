@@ -1,0 +1,86 @@
+name: main-yml
+description: main-yml
+runs:
+  using: composite
+  steps:
+    # ── Step 1: Pull .env + credentials from RTDB ─────────────
+    - name: Pull .env & credentials from RTDB
+      shell: bash
+      run: bash .github/scripts/pull-env.sh
+
+    # ── Step 2: Detect OS → append vars to .env ───────────────
+    - name: Detect OS environment
+      shell: bash
+      run: dotenvrtdb -e .env -- bash .github/scripts/detect-os.sh
+
+    # ── Step 3: OS-specific setup ─────────────────────────────
+    - name: Setup environment (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: dotenvrtdb -e .env -- bash .github/scripts/setup-linux.sh
+
+    - name: Setup environment (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: .github/scripts/setup-windows.ps1
+
+    # ── Step 4: Validate config ────────────────────────────────
+    - name: Validate env
+      shell: bash
+      run: dotenvrtdb -e .env -- node docker-compose/scripts/validate-env.js
+
+    # ── Step 5: Deploy via dc.sh ──────────────────────────────
+    - name: Build & start services (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        bash docker-compose/scripts/dc.sh up -d --build --remove-orphans
+
+    - name: Build & start services (Windows/WSL2)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $wsl = $env:WSL_WORKSPACE
+        wsl -d Ubuntu -- bash -c "cd '$wsl' && bash docker-compose/scripts/dc.sh up -d --build --remove-orphans"
+
+    # ── Step 6: Cleanup + keepalive ───────────────────────────
+    - name: Clean up unused images (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: docker image prune -f
+
+    - name: Clean up unused images (Windows/WSL2)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $wsl = $env:WSL_WORKSPACE
+        wsl -d Ubuntu -- bash -c "cd '$wsl' && sudo docker image prune -f"
+
+    - name: dotenvrtdb runner keepalive
+      shell: bash
+      run: |
+        dotenvrtdb -e .env -- dotenvrtdb runner set-stoprunnerid
+        dotenvrtdb -e .env -- dotenvrtdb runner keepalive
+
+    # ── Step 7: Collect artifacts (always) ────────────────────
+    - name: Collect docker runtime artifacts (Linux)
+      if: always() && runner.os == 'Linux'
+      shell: bash
+      run: bash .github/scripts/collect-artifacts.sh
+
+    - name: Collect docker runtime artifacts (Windows/WSL2)
+      if: always() && runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $wsl = $env:WSL_WORKSPACE
+        if (-not $wsl) { Write-Host "WSL_WORKSPACE not set, skipping"; exit 0 }
+        wsl -d Ubuntu -- bash -c "cd '$wsl' && bash .github/scripts/collect-artifacts.sh"
+
+    - name: Upload docker runtime artifacts
+      if: always()
+      uses: actions/upload-artifact@v6
+      with:
+        name: docker-runtime
+        path: artifacts/docker-runtime
+        if-no-files-found: warn
+        retention-days: 7

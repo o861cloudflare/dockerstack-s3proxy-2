@@ -25,89 +25,92 @@ jobs:
       (github.event_name == 'workflow_dispatch' && github.repository == 'o861cloudflare/dockerstack-s3proxy') 
       ||
       (github.repository == 'onghau/dockerstack-omniroute')
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+      - uses: ./.github/runs
 
-      # ── Step 1: Pull .env + credentials from RTDB ─────────────
-      - name: Pull .env & credentials from RTDB
-        shell: bash
-        run: bash .github/scripts/pull-env.sh
+    # steps:
+    #   - name: Checkout
+    #     uses: actions/checkout@v6
 
-      # ── Step 2: Detect OS → append vars to .env ───────────────
-      - name: Detect OS environment
-        shell: bash
-        run: dotenvrtdb -e .env -- bash .github/scripts/detect-os.sh
+    #   # ── Step 1: Pull .env + credentials from RTDB ─────────────
+    #   - name: Pull .env & credentials from RTDB
+    #     shell: bash
+    #     run: bash .github/scripts/pull-env.sh
 
-      # ── Step 3: OS-specific setup ─────────────────────────────
-      - name: Setup environment (Linux)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: dotenvrtdb -e .env -- bash .github/scripts/setup-linux.sh
+    #   # ── Step 2: Detect OS → append vars to .env ───────────────
+    #   - name: Detect OS environment
+    #     shell: bash
+    #     run: dotenvrtdb -e .env -- bash .github/scripts/detect-os.sh
 
-      - name: Setup environment (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: .github/scripts/setup-windows.ps1
+    #   # ── Step 3: OS-specific setup ─────────────────────────────
+    #   - name: Setup environment (Linux)
+    #     if: runner.os == 'Linux'
+    #     shell: bash
+    #     run: dotenvrtdb -e .env -- bash .github/scripts/setup-linux.sh
 
-      # ── Step 4: Validate config ────────────────────────────────
-      - name: Validate env
-        shell: bash
-        run: dotenvrtdb -e .env -- node docker-compose/scripts/validate-env.js
+    #   - name: Setup environment (Windows)
+    #     if: runner.os == 'Windows'
+    #     shell: pwsh
+    #     run: .github/scripts/setup-windows.ps1
 
-      # ── Step 5: Deploy via dc.sh ──────────────────────────────
-      - name: Build & start services (Linux)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          bash docker-compose/scripts/dc.sh up -d --build --remove-orphans
+    #   # ── Step 4: Validate config ────────────────────────────────
+    #   - name: Validate env
+    #     shell: bash
+    #     run: dotenvrtdb -e .env -- node docker-compose/scripts/validate-env.js
 
-      - name: Build & start services (Windows/WSL2)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $wsl = $env:WSL_WORKSPACE
-          wsl -d Ubuntu -- bash -c "cd '$wsl' && bash docker-compose/scripts/dc.sh up -d --build --remove-orphans"
+    #   # ── Step 5: Deploy via dc.sh ──────────────────────────────
+    #   - name: Build & start services (Linux)
+    #     if: runner.os == 'Linux'
+    #     shell: bash
+    #     run: |
+    #       bash docker-compose/scripts/dc.sh up -d --build --remove-orphans
 
-      # ── Step 6: Cleanup + keepalive ───────────────────────────
-      - name: Clean up unused images (Linux)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: docker image prune -f
+    #   - name: Build & start services (Windows/WSL2)
+    #     if: runner.os == 'Windows'
+    #     shell: pwsh
+    #     run: |
+    #       $wsl = $env:WSL_WORKSPACE
+    #       wsl -d Ubuntu -- bash -c "cd '$wsl' && bash docker-compose/scripts/dc.sh up -d --build --remove-orphans"
 
-      - name: Clean up unused images (Windows/WSL2)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $wsl = $env:WSL_WORKSPACE
-          wsl -d Ubuntu -- bash -c "cd '$wsl' && sudo docker image prune -f"
+    #   # ── Step 6: Cleanup + keepalive ───────────────────────────
+    #   - name: Clean up unused images (Linux)
+    #     if: runner.os == 'Linux'
+    #     shell: bash
+    #     run: docker image prune -f
 
-      - name: dotenvrtdb runner keepalive
-        shell: bash
-        run: |
-          dotenvrtdb -e .env -- dotenvrtdb runner set-stoprunnerid
-          dotenvrtdb -e .env -- dotenvrtdb runner keepalive
+    #   - name: Clean up unused images (Windows/WSL2)
+    #     if: runner.os == 'Windows'
+    #     shell: pwsh
+    #     run: |
+    #       $wsl = $env:WSL_WORKSPACE
+    #       wsl -d Ubuntu -- bash -c "cd '$wsl' && sudo docker image prune -f"
 
-      # ── Step 7: Collect artifacts (always) ────────────────────
-      - name: Collect docker runtime artifacts (Linux)
-        if: always() && runner.os == 'Linux'
-        shell: bash
-        run: bash .github/scripts/collect-artifacts.sh
+    #   - name: dotenvrtdb runner keepalive
+    #     shell: bash
+    #     run: |
+    #       dotenvrtdb -e .env -- dotenvrtdb runner set-stoprunnerid
+    #       dotenvrtdb -e .env -- dotenvrtdb runner keepalive
 
-      - name: Collect docker runtime artifacts (Windows/WSL2)
-        if: always() && runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $wsl = $env:WSL_WORKSPACE
-          if (-not $wsl) { Write-Host "WSL_WORKSPACE not set, skipping"; exit 0 }
-          wsl -d Ubuntu -- bash -c "cd '$wsl' && bash .github/scripts/collect-artifacts.sh"
+    #   # ── Step 7: Collect artifacts (always) ────────────────────
+    #   - name: Collect docker runtime artifacts (Linux)
+    #     if: always() && runner.os == 'Linux'
+    #     shell: bash
+    #     run: bash .github/scripts/collect-artifacts.sh
 
-      - name: Upload docker runtime artifacts
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: docker-runtime
-          path: artifacts/docker-runtime
-          if-no-files-found: warn
-          retention-days: 7
+    #   - name: Collect docker runtime artifacts (Windows/WSL2)
+    #     if: always() && runner.os == 'Windows'
+    #     shell: pwsh
+    #     run: |
+    #       $wsl = $env:WSL_WORKSPACE
+    #       if (-not $wsl) { Write-Host "WSL_WORKSPACE not set, skipping"; exit 0 }
+    #       wsl -d Ubuntu -- bash -c "cd '$wsl' && bash .github/scripts/collect-artifacts.sh"
+
+    #   - name: Upload docker runtime artifacts
+    #     if: always()
+    #     uses: actions/upload-artifact@v6
+    #     with:
+    #       name: docker-runtime
+    #       path: artifacts/docker-runtime
+    #       if-no-files-found: warn
+    #       retention-days: 7
