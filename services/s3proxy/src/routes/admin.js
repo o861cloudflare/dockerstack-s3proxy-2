@@ -165,11 +165,10 @@ function deriveDockerAccessFromEnv() {
   const websshPort = readResolvedEnv("WEBSSH_HOST_PORT") || "17681";
   const cloudflaredHostnames = collectResolvedEnvPrefix(CLOUDFLARED_TUNNEL_HOSTNAME_PREFIX);
   const customEnv = collectResolvedEnvPrefix(DOCKER_ACCESS_URL_PREFIX);
-  const tailscaleHost = tailnetDomain ? `${tailnetDomain}` : "";
+  const tailscaleHost = tailnetDomain ? `${projectName}.${tailnetDomain}` : "";
 
-  const cloudflaredItems = [
+  let cloudflaredItems = [
     { key: "root", label: "Root", envKey: `${CLOUDFLARED_TUNNEL_HOSTNAME_PREFIX}1` },
-    { key: "rootAdmin", label: "RootAdmin", envKey: `${CLOUDFLARED_TUNNEL_HOSTNAME_PREFIX}1/admin` },
     { key: "main", label: "Main", envKey: `${CLOUDFLARED_TUNNEL_HOSTNAME_PREFIX}2` },
     { key: "ttyd", label: "TTYD", envKey: `${CLOUDFLARED_TUNNEL_HOSTNAME_PREFIX}3` },
     { key: "dozzle", label: "Dozzle", envKey: `${CLOUDFLARED_TUNNEL_HOSTNAME_PREFIX}4` },
@@ -181,6 +180,15 @@ function deriveDockerAccessFromEnv() {
       hint: cloudflaredHostnames[item.envKey] ? `Lấy từ ${item.envKey}.` : `Chưa cấu hình ${item.envKey}.`,
     }),
   );
+  cloudflaredItems = [
+    {
+      key: "rootAdmin",
+      label: "RootAdmin",
+      url: `${ensureAccessUrl(cloudflaredHostnames[CLOUDFLARED_TUNNEL_HOSTNAME_PREFIX + "1"])}/admin`,
+      envKey: `${CLOUDFLARED_TUNNEL_HOSTNAME_PREFIX}1`,
+    },
+    ...cloudflaredItems,
+  ];
 
   const tailscaleItems = [
     buildDockerAccessItem({
