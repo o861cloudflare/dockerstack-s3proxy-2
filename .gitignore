@@ -144,3 +144,4 @@ env-docker-stack-template-default-rtdb-tailscale-keep-ip-export.json
 # Editor
 
 # OS
+.env.2
